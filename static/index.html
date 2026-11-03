@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Pattern Scanner</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #262d38; --text: #e6edf3; --muted: #8b95a3;
+    --up: #26a69a; --down: #ef5350; --neutral: #8b95a3; --accent: #4c8dff; --warn: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, Segoe UI, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  select, input, button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: inherit; }
+  input { width: 110px; text-transform: uppercase; }
+  button { cursor: pointer; background: var(--accent); border-color: var(--accent); color: #fff; }
+  .spacer { flex: 1; }
+  .navlink { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .navlink:hover { color: var(--text); border-color: var(--accent); }
+  .mkt { font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .mkt i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .mkt.open i { background: var(--up); box-shadow: 0 0 6px var(--up); }
+  .mkt.open b { color: var(--up); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 12px; padding: 12px 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .chartwrap { display: flex; }
+  #toolbar { width: 48px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border-right: 1px solid var(--line); }
+  #toolbar button { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; background: transparent; border: 1px solid transparent; color: var(--muted); border-radius: 6px; }
+  #toolbar button:hover { background: var(--bg); color: var(--text); }
+  #toolbar button.active { background: rgba(76,141,255,.2); border-color: var(--accent); color: var(--text); }
+  #toolbar button.call { color: var(--up); font: 700 10px/1 system-ui; }
+  #toolbar button.put { color: var(--down); font: 700 10px/1 system-ui; }
+  #toolbar button.call.active, #toolbar button.put.active { color: var(--text); }
+  #toolbar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  #toolbar hr { width: 28px; border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  #chartbox { position: relative; flex: 1; min-width: 0; height: 540px; }
+  #chart, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #overlay { pointer-events: none; z-index: 10; }
+  #chartbox[data-cursor="crosshair"] * { cursor: crosshair !important; }
+  #chartbox[data-cursor="move"] * { cursor: move !important; }
+  #chartbox[data-cursor="ns-resize"] * { cursor: ns-resize !important; }
+  #chartbox[data-cursor="ew-resize"] * { cursor: ew-resize !important; }
+  #chartbox[data-cursor="pointer"] * { cursor: pointer !important; }
+  .sigbtn { background: linear-gradient(90deg, var(--up), var(--accent)); border: 0; font-weight: 700; padding: 7px 16px; }
+  .btn2 { background: transparent; color: var(--text); border: 1px solid var(--line); font-size: 12px; padding: 4px 10px; }
+  .btn2:hover, .btn2.on { border-color: var(--accent); }
+  .btn2.on { background: rgba(76,141,255,.18); }
+  /* most active stocks */
+  #movers { display: none; margin: 10px 16px 0; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  #movers.show { display: block; }
+  .mhead { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  #movers table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  #movers th { text-align: right; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 8px; }
+  #movers td { text-align: right; padding: 5px 8px; border-top: 1px solid var(--line); }
+  #movers th:first-child, #movers td:first-child { text-align: left; }
+  #movers tr.row { cursor: pointer; }
+  #movers tr.row:hover { background: rgba(76,141,255,.1); }
+  /* trade signal */
+  .banner { margin: 12px 14px 0; border-radius: 10px; padding: 12px 14px; border: 1px solid; }
+  .banner .head { font-size: 26px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; }
+  .banner .line { font-size: 13px; margin-top: 6px; }
+  .banner .sub { font-size: 12px; margin-top: 6px; color: var(--muted); }
+  .banner.call { background: rgba(38,166,154,.14); border-color: var(--up); } .banner.call .head { color: var(--up); }
+  .banner.put { background: rgba(239,83,80,.14); border-color: var(--down); } .banner.put .head { color: var(--down); }
+  .banner.wait { background: rgba(240,180,41,.08); border-color: var(--warn); } .banner.wait .head { color: var(--warn); }
+  .banner.closed { background: rgba(139,149,163,.08); border-color: var(--muted); } .banner.closed .head { color: var(--muted); }
+  .banner.blink { animation: blink .8s ease-in-out 4; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .sec { padding: 10px 14px 0; }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .levels div { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .levels small { display: block; color: var(--muted); font-size: 11px; }
+  .levels b { font-size: 15px; }
+  .bar { position: relative; height: 8px; border-radius: 4px; margin: 6px 4px 0; }
+  .bar .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); transform: translateX(-1px); }
+  .bar .dot { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); transform: translate(-50%, -50%); }
+  .barlbl { position: relative; height: 16px; font-size: 11px; color: var(--muted); margin: 4px 4px 0; }
+  .barlbl span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .barlbl span:first-child { transform: none; left: 0; } .barlbl span:last-child { transform: none; right: 0; }
+  .votes { display: grid; grid-template-columns: 70px auto 1fr; gap: 8px; align-items: start; font-size: 13px; }
+  .chip { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); text-align: center; white-space: nowrap; color: var(--muted); }
+  .chip.UP, .chip.BULLISH, .chip.CALL { color: var(--up); border-color: var(--up); }
+  .chip.DOWN, .chip.BEARISH, .chip.PUT { color: var(--down); border-color: var(--down); }
+  .why { font-size: 12px; color: var(--muted); }
+  .legend { margin: 10px 14px 0; font-size: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; padding: 6px 8px; }
+  .bt { margin: 10px 14px 14px; font-size: 12px; border-radius: 6px; padding: 8px 10px; border: 1px solid var(--line); }
+  .bt.good { border-color: var(--up); } .bt.bad { border-color: var(--down); } .bt.meh { border-color: var(--warn); }
+  /* self-learning model */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 12px; padding: 4px 10px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: rgba(76,141,255,.22); color: var(--text); }
+  .ml { padding: 10px 14px 12px; display: grid; gap: 8px; font-size: 13px; }
+  .ml table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 2px; }
+  .ml th { color: var(--muted); font-weight: 500; text-align: right; padding: 2px 6px; }
+  .ml td { text-align: right; padding: 3px 6px; border-top: 1px solid var(--line); }
+  .ml th:first-child, .ml td:first-child { text-align: left; }
+  .ml code { font-size: 11px; }
+  .incharge { font-size: 12px; border-radius: 6px; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line); }
+  .gate { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: grid; gap: 3px; font-size: 12px; }
+  .gate.pass { border-color: var(--up); }
+  .imp { display: grid; grid-template-columns: 170px 1fr 42px; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+  .imp i { display: block; height: 6px; border-radius: 3px; background: var(--accent); }
+  .imp span:last-child { text-align: right; }
+  /* pattern study */
+  .study { padding: 12px 14px; display: grid; gap: 6px; font-size: 13px; }
+  .study label { display: flex; gap: 6px; align-items: center; }
+  .study input { width: auto; margin: 0; }
+  .hint { padding: 6px 14px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+  .pos { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 12px; align-items: center; cursor: pointer; }
+  .pos.sel { background: rgba(76,141,255,.12); }
+  .pos .tag { font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid; }
+  .pos .tag.long { color: var(--up); } .pos .tag.short { color: var(--down); }
+  .pos .x { background: transparent; border: 0; color: var(--muted); padding: 0 4px; cursor: pointer; font-size: 16px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 18px; padding: 10px 14px; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .stats .price { font-size: 22px; font-weight: 600; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .warn { color: var(--warn); }
+  .UP { color: var(--up); } .DOWN { color: var(--down); }
+  #side { align-self: start; max-height: calc(100vh - 90px); overflow: auto; }
+  #side h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  .empty { padding: 16px 14px; color: var(--muted); }
+  #err { color: var(--down); padding: 0 16px; min-height: 18px; }
+  footer { padding: 0 16px 16px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } #chartbox { height: 380px; } #side { max-height: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Live Pattern Scanner</h1>
+  <select id="provider" aria-label="Market">
+    <option value="yahoo">US stocks (live)</option>
+    <option value="nse">NSE India stocks</option>
+    <option value="binance">Crypto 24/7</option>
+  </select>
+  <input id="symbol" value="PLTR" aria-label="Symbol" list="symlist">
+  <datalist id="symlist"></datalist>
+  <button id="moversbtn" class="btn2" title="Which stocks are moving the most right now">&#128293; Movers</button>
+  <select id="interval" aria-label="Timeframe">
+    <option>1m</option><option>5m</option><option>15m</option><option>30m</option><option>1h</option>
+  </select>
+  <select id="horizon" aria-label="Look-ahead">
+    <option value="3">look-ahead 3</option><option value="5" selected>look-ahead 5</option>
+    <option value="10">look-ahead 10</option><option value="20">look-ahead 20</option>
+  </select>
+  <select id="poll" aria-label="Refresh rate">
+    <option value="3000">every 3s</option><option value="5000" selected>every 5s</option>
+    <option value="10000">every 10s</option><option value="30000">every 30s</option>
+  </select>
+  <button id="go">Load</button>
+  <button id="signal" class="sigbtn" title="Recalculate the trade signal now (it also updates by itself at every candle close)">&#9889; Update signal</button>
+  <span class="spacer"></span>
+  <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
+  <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
+  <a class="navlink" href="/test">Test Lab</a>
+  <a class="navlink" href="/backtest">Backtest</a>
+</header>
+<div id="movers"></div>
+<div id="err"></div>
+<main>
+  <section class="panel">
+    <div class="stats">
+      <span class="price" id="price">-</span>
+      <span class="muted" id="meta"></span>
+      <span class="warn" id="stale"></span>
+    </div>
+    <div class="chartwrap">
+      <div id="toolbar">
+        <button data-tool="cursor" class="active" title="Select / move (Esc)"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z"/></svg></button>
+        <hr>
+        <button data-tool="trend" title="Trend line (click, then click again)"><svg viewBox="0 0 24 24"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M6.5 17.5l11-11"/></svg></button>
+        <button data-tool="hline" title="Horizontal line"><svg viewBox="0 0 24 24"><path d="M3 12h18"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <hr>
+        <button data-tool="long" class="call" title="CALL / Long box: click to place, drag handles for stop-loss and target">CALL</button>
+        <button data-tool="short" class="put" title="PUT / Short box: click to place, drag handles for stop-loss and target">PUT</button>
+        <button data-tool="measure" title="Measure (points, %, candles)"><svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="8" rx="1" transform="rotate(-30 12 12)"/><path d="M8 10l1.5 2M12 8l1.5 2M16 6l1.5 2"/></svg></button>
+        <hr>
+        <button id="magnet" title="Magnet: snap to candle open/high/low/close"><svg viewBox="0 0 24 24"><path d="M6 3v9a6 6 0 0012 0V3h-4v9a2 2 0 01-4 0V3z"/></svg></button>
+        <button id="lock" title="Lock drawings (no accidental moves)"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></button>
+        <button id="eye" title="Hide / show drawings"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <hr>
+        <button id="trash" title="Delete selected drawing (or all, if none selected)"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+      <div id="chartbox">
+        <div id="chart"></div>
+        <canvas id="overlay"></canvas>
+      </div>
+    </div>
+    <div class="hint">On the chart: <b class="UP">&#9650; CALL</b> / <b class="DOWN">&#9660; PUT</b> arrows = where the trade signal entered, &#10003; / &#10007; / &#9201; = how that trade ended (target / stop / time limit or market close), square = latest candlestick pattern.
+      You can also draw your own CALL / PUT boxes with the tools on the left.</div>
+  </section>
+  <aside class="panel" id="side">
+    <h2>Trade signal <span class="muted" id="sigmeta" style="font-weight:400"></span></h2>
+    <div id="sigbody"><div class="empty">Loading signal...</div></div>
+    <h2>Self-learning model <span class="muted" id="mlmeta" style="font-weight:400"></span></h2>
+    <div id="mlbody"><div class="empty">Loading...</div></div>
+    <h2>Pattern study <span class="muted" style="font-weight:400">(information only, not a trade signal)</span></h2>
+    <div id="list"><div class="empty">Loading history (first load takes a few seconds)...</div></div>
+    <h2>Your trade boxes</h2>
+    <div id="positions"><div class="empty">None yet. Use the CALL / PUT tools on the left.</div></div>
+  </aside>
+</main>
+<footer>The trade signal comes from one fixed rule, or from the self-learning model once it has proven itself on candles it had never seen. Both are replayed one trade at a time on this chart's own history with no look-ahead. Free public data, for learning and testing. Not financial advice.</footer>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/static/drawings.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const tz = -new Date().getTimezoneOffset() * 60;           // show candles in local time
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TEST = !!window.TEST_DEFAULT_SYMBOL;                  // /test page (replay) sets this
+const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'SBIN', binance: 'BTCUSDT' };
+const SUGGEST = {
+  yahoo: ['PLTR', 'SOXL', 'COIN', 'AMD', 'RIOT', 'MARA', 'TSLA', 'NVDA', 'SMCI', 'MSTR', 'IONQ', 'UPST', 'HOOD', 'SOFI', 'AAPL', 'META'],
+  nse: ['SBIN', 'MCX', 'ANGELONE', 'DIXON', 'CDSL', 'BSE', 'PAYTM', 'RELIANCE', 'TMPV', 'ADANIENT', 'HDFCBANK', 'ICICIBANK', 'TCS', 'INFY', '^NSEI', '^NSEBANK'],
+  binance: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
+};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
+};
+
+const chart = LightweightCharts.createChart($('chart'), {
+  layout: { background: { color: css('--panel') }, textColor: css('--muted') },
+  grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } },
+  timeScale: { timeVisible: true, secondsVisible: false, borderColor: css('--line') },
+  rightPriceScale: { borderColor: css('--line') },
+  autoSize: true,
+});
+const series = chart.addCandlestickSeries({
+  upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down'), borderVisible: false,
+});
+const mkLine = (width, style) => chart.addLineSeries({
+  lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+});
+const predLine = mkLine(2, LightweightCharts.LineStyle.Dashed);
+const loLine = mkLine(1, LightweightCharts.LineStyle.Dotted);
+const hiLine = mkLine(1, LightweightCharts.LineStyle.Dotted);
+const lines = [predLine, loLine, hiLine];
+
+// ---- drawing tools (CALL/PUT boxes, trend line, ruler...) ----
+const toolButtons = [...document.querySelectorAll('#toolbar [data-tool]')];
+const dr = createDrawings({
+  chart, series, box: $('chartbox'), canvas: $('overlay'),
+  onChange: () => renderPositions(),
+  onTool: t => toolButtons.forEach(b => b.classList.toggle('active', b.dataset.tool === t)),
+});
+toolButtons.forEach(b => b.onclick = () => dr.setTool(dr.getTool() === b.dataset.tool ? 'cursor' : b.dataset.tool));
+$('magnet').onclick = () => $('magnet').classList.toggle('active', dr.toggleMagnet());
+$('lock').onclick = () => $('lock').classList.toggle('active', dr.toggleLock());
+$('eye').onclick = () => $('eye').classList.toggle('active', dr.toggleHidden());
+$('trash').onclick = () => dr.deleteSelectedOrAll();
+
+const pts = v => (v >= 0 ? '+' : '') + v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+const num = v => v.toLocaleString(undefined, { maximumFractionDigits: Math.abs(v) >= 1 ? 2 : 4 });
+const hhmm = t => new Date(t * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const dur = s => s >= 5400 ? `${(s / 3600).toFixed(1)} h` : s >= 90 ? `${Math.round(s / 60)} min` : `${Math.max(0, Math.round(s))} s`;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const isReplay = () => ['nse_replay', 'seeder'].includes($('provider').value);
+const R = v => v == null ? '-' : (v >= 0 ? '+' : '') + v.toFixed(2) + 'R';
+const chipArrow = x => ({ UP: '&#9650;', BULLISH: '&#9650;', CALL: '&#9650;', DOWN: '&#9660;', BEARISH: '&#9660;', PUT: '&#9660;' }[x] || '&#8211;');
+
+function renderPositions() {
+  const ps = dr.summary(), el = $('positions');
+  if (!ps.length) { el.innerHTML = '<div class="empty">None yet. Use the CALL / PUT tools on the left.</div>'; return; }
+  el.innerHTML = ps.map(p => {
+    const long = p.type === 'long';
+    const state = p.state === 'target' ? `<b class="UP">TARGET HIT ${pts(p.pl)} pts</b>`
+      : p.state === 'stop' ? `<b class="DOWN">STOPPED OUT ${pts(p.pl)} pts</b>`
+      : p.state === 'timeout' ? `<b class="${p.pl >= 0 ? 'UP' : 'DOWN'}">TIME UP ${pts(p.pl)} pts</b>`
+      : p.state === 'pending' ? '<span class="muted">entered, waiting for next candle</span>'
+      : `<b class="${p.pl >= 0 ? 'UP' : 'DOWN'}">open, P/L ${pts(p.pl)} pts</b>`;
+    return `<div class="pos${p.selected ? ' sel' : ''}" data-id="${p.id}">
+      <span class="tag ${p.type}">${long ? 'CALL' : 'PUT'}</span>
+      <span>${p.auto ? '<span class="muted">signal box: </span>' : ''}entry ${num(p.entry)} | stop ${num(p.stop)} | target ${num(p.target)}<br>${state} <span class="muted">(risk ${num(p.risk)}, reward ${num(p.reward)}, R:R ${(p.risk ? p.reward / p.risk : 0).toFixed(2)})</span></span>
+      <button class="x" data-del="${p.id}" title="Delete">&times;</button></div>`;
+  }).join('');
+  el.querySelectorAll('.pos').forEach(row => row.onclick = e => {
+    if (e.target.dataset.del) dr.remove(e.target.dataset.del); else dr.select(row.dataset.id);
+  });
+}
+
+let timer = null, current = '', scan = null, sig = null, sigFor = '', sigBusy = false, candleCount = 0;
+let shownTimes = new Set(), patternMarkers = [], tradeMarkers = [], boxKey = '', bannerKey = '', mk = null;
+let projOn = store.get('show-projection', false);
+let logicMode = store.get('logic-mode', 'auto');            // auto | rule | model
+
+function applyMarkers() {
+  series.setMarkers([...patternMarkers, ...tradeMarkers].filter(m => shownTimes.has(m.time)).sort((a, b) => a.time - b.time));
+}
+
+function render(d) {
+  scan = d;
+  const key = `${d.provider}|${d.symbol}|${d.interval}`;
+  const keyChanged = key !== current;
+  const range = keyChanged ? null : chart.timeScale().getVisibleLogicalRange();
+  series.setData(d.candles.map(c => ({ time: c.time + tz, open: c.open, high: c.high, low: c.low, close: c.close })));
+  if (keyChanged) {
+    chart.timeScale().fitContent();
+    current = key; sig = null; tradeMarkers = []; boxKey = '';
+    $('sigbody').innerHTML = '<div class="empty">Working out the trade signal...</div>';
+    $('mlbody').innerHTML = '<div class="empty">Loading the model...</div>'; $('mlmeta').textContent = '';
+  } else if (range) chart.timeScale().setVisibleLogicalRange(range);
+  shownTimes = new Set(d.candles.map(c => c.time + tz));
+
+  $('price').textContent = num(d.last_price);
+  $('meta').textContent = `${d.symbol} ${d.interval} | ${d.history_candles} candles of history | updated ${new Date().toLocaleTimeString()}`;
+  $('stale').textContent = d.stale ? 'Not live: market closed or feed delayed' : '';
+  candleCount = d.candles.length;
+  dr.setData(d.candles, d.interval_seconds, `${d.provider}|${d.symbol}`);
+  renderPositions();
+  renderStudy(d);
+
+  // the signal only changes when a candle closes: refetch then, otherwise just update live numbers
+  const n = d.candles.length;
+  const closedT = d.candles[Math.max(0, n - (d.last_candle_forming ? 2 : 1))].time;
+  const want = `${key}|${$('horizon').value}|${closedT}`;
+  if (want !== sigFor) fetchSignal(want); else renderSignal();
+  applyMarkers();
+}
+
+// ---------------- pattern study (information only) ----------------
+function renderStudy(d) {
+  const p = d.prediction, el = $('list');
+  if (!p) {
+    patternMarkers = []; lines.forEach(l => l.setData([]));
+    el.innerHTML = '<div class="empty">No pattern in the history yet.</div>';
+    return;
+  }
+  const tb = p.rule_direction;                                  // textbook direction of the pattern itself
+  const col = css(tb === 'UP' ? '--up' : tb === 'DOWN' ? '--down' : '--neutral');
+  patternMarkers = [{ time: p.pattern_time + tz, position: tb === 'DOWN' ? 'aboveBar' : 'belowBar', shape: 'square', color: col, text: p.pattern }];
+
+  if (projOn && p.active) {
+    const t0 = p.pattern_time + tz, t1 = t0 + p.horizon * d.interval_seconds;
+    lines.forEach(l => l.applyOptions({ color: css('--accent') }));
+    predLine.setData([{ time: t0, value: p.entry_price }, { time: t1, value: p.target_price }]);
+    loLine.setData([{ time: t0, value: p.entry_price }, { time: t1, value: p.range_low_price }]);
+    hiLine.setData([{ time: t0, value: p.entry_price }, { time: t1, value: p.range_high_price }]);
+  } else lines.forEach(l => l.setData([]));
+
+  const ago = p.age === 0 ? 'last closed candle' : `${plural(p.age, 'candle')} ago`;
+  const effect = { strong: 'a strong effect', moderate: 'a moderate effect', weak: 'a weak effect (could be luck)', none: 'no real effect (could be luck)' }[p.edge];
+  const acted = p.up_pct == null ? '' : p.up_pct > p.baseline_up_pct ? 'bullish' : p.up_pct < p.baseline_up_pct ? 'bearish' : 'neutral';
+  const tbWord = tb === 'UP' ? 'bullish' : tb === 'DOWN' ? 'bearish' : 'neutral';
+  const match = tb === 'SIDEWAYS' || acted === 'neutral' ? '' : acted === tbWord ? ', as the textbook says' : ', the <b>opposite</b> of the textbook';
+  const verdict = p.basis !== 'history' || p.up_pct == null
+    ? `${plural(p.samples, 'earlier case')}: too few to judge`
+    : `price rose after it ${Math.round(p.up_pct * 100)}% of ${p.samples} times vs ${Math.round(p.baseline_up_pct * 100)}% after any candle. It acted <b>${acted}</b>${match}: ${effect}`;
+  el.innerHTML = `<div class="study">
+    <div><b>${p.pattern}</b> <span class="chip ${tb === 'UP' ? 'UP' : tb === 'DOWN' ? 'DOWN' : ''}">textbook ${tb === 'UP' ? '&#9650; bullish' : tb === 'DOWN' ? '&#9660; bearish' : 'neutral'}</span>
+      <span class="muted small">${hhmm(p.pattern_time)} (${ago})</span></div>
+    <div class="why">On this chart: ${verdict}.</div>
+    ${p.basis === 'history' ? `<div class="why">Typical move ${plural(p.horizon, 'candle')} later: ${pts(p.expected_move)} pts (middle half: ${pts(p.range_low_price - p.entry_price)} to ${pts(p.range_high_price - p.entry_price)}).</div>` : ''}
+    <div class="why">The trade signal above already takes recent patterns into account; this card is for learning.</div>
+    <label class="why"><input type="checkbox" id="proj" ${projOn ? 'checked' : ''}> show this pattern's typical move on the chart (blue lines)</label>
+  </div>`;
+  $('proj').onchange = e => { projOn = e.target.checked; store.set('show-projection', projOn); renderStudy(scan); applyMarkers(); };
+}
+
+// ---------------- trade signal ----------------
+async function fetchSignal(want) {
+  if (sigBusy) return;
+  sigBusy = true;
+  const q = { provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value, horizon: $('horizon').value, logic: logicMode };
+  try {
+    const r = await fetch('/api/signal?' + new URLSearchParams(q));
+    const s = await r.json();
+    if (!r.ok) throw new Error(s.error || r.statusText);
+    if (`${s.provider}|${s.symbol}|${s.interval}` !== current) return;     // user switched symbol meanwhile
+    sig = s; sigFor = want;
+    tradeMarkers = buildTradeMarkers(s);
+    syncBox(s);
+    renderSignal();
+    renderModel();
+    applyMarkers();
+    // the model is (re)training in the background: ask again shortly so its newest opinion shows up
+    if (s.model && s.model.busy) setTimeout(() => { if (sigFor === want) { sigFor = ''; load(); } }, 2500);
+  } catch (e) {
+    $('sigbody').innerHTML = `<div class="empty" style="color:var(--down)">Signal error: ${e.message}</div>`;
+    sigFor = want;                                                          // retry at the next candle (or the button)
+  } finally {
+    sigBusy = false;
+  }
+}
+
+function buildTradeMarkers(s) {
+  const up = css('--up'), down = css('--down'), out = [];
+  const entry = (side, t, text) => out.push({ time: t + tz, position: side === 'CALL' ? 'belowBar' : 'aboveBar',
+    shape: side === 'CALL' ? 'arrowUp' : 'arrowDown', color: side === 'CALL' ? up : down, text });
+  for (const x of s.trades) {
+    entry(x.side, x.entry_time, x.side);
+    out.push({ time: x.exit_time + tz, position: x.side === 'CALL' ? 'aboveBar' : 'belowBar', shape: 'circle',
+      color: x.points > 0 ? up : down, text: x.exit === 'timeout' || x.exit === 'close' ? '⏱' : x.points > 0 ? '✓' : '✗' });
+  }
+  if (s.trade) entry(s.trade.side, s.trade.entry_time, s.trade.side + (s.state === 'enter' ? ' NOW' : ''));
+  return out;
+}
+
+// draw the current trade (or the last finished one) as a CALL/PUT box; replaced when the signal changes
+function syncBox(s) {
+  const t = s.trade || s.last_trade;
+  const key = t ? `${current}|${t.side}|${t.entry_time}` : '';
+  if (key === boxKey) return;
+  boxKey = key;
+  dr.removeAuto();
+  if (!t) return;
+  dr.addTrade({ type: t.side === 'CALL' ? 'long' : 'short', t0: t.entry_time, entry: t.entry, stop: t.stop, target: t.target,
+    w: s.max_hold * s.interval_seconds, auto: true });
+  if (s.trade && s.state === 'enter') {          // new trade: make room so the whole box is visible
+    chart.timeScale().setVisibleLogicalRange({ from: candleCount - 100, to: candleCount + s.max_hold + 5 });
+  }
+}
+
+function progressBar(t, price, rr) {
+  const dir = t.side === 'CALL' ? 1 : -1;
+  const f = Math.max(0, Math.min(1, ((price - t.stop) * dir) / ((t.target - t.stop) * dir)));
+  const e = 100 / (1 + rr);
+  return `<div class="sec">
+    <div class="bar" style="background:linear-gradient(90deg, rgba(239,83,80,.55) 0 ${e}%, rgba(38,166,154,.55) ${e}% 100%)">
+      <span class="tick" style="left:${e}%"></span><span class="dot" style="left:${(f * 100).toFixed(1)}%" title="current price"></span></div>
+    <div class="barlbl"><span class="DOWN">&#9664; stop-loss</span><span style="left:${e}%">entry</span><span class="UP">target &#9654;</span></div></div>`;
+}
+
+function verdict(b, who) {
+  if (b.trades < 20) return ['meh', `Too few trades on this chart to judge the ${who} yet.`];
+  const pf = b.profit_factor;
+  if (pf == null || pf >= 1.2) return ['good', `The ${who} made money on this chart before (no fees included).`];
+  if (pf >= 0.95) return ['meh', `The ${who} was about break-even on this chart. Fees would make it a loss.`];
+  return ['bad', `The ${who} LOST money on this chart before. Treat signals here as practice only.`];
+}
+
+function renderSignal() {
+  const s = sig, d = scan;
+  if (!s || !d) return;
+  const v = s.votes;
+  let state = s.state;
+  const t = s.trade ? { ...s.trade } : null;
+  if (t) {                                       // live numbers between candle closes
+    const dir = t.side === 'CALL' ? 1 : -1;
+    t.pl_points = (d.last_price - t.entry) * dir;
+    if (d.last_candle_forming && state !== 'exit') {
+      const bar = d.candles[d.candles.length - 1];
+      if (dir > 0 ? bar.low <= t.stop : bar.high >= t.stop) { state = 'exit'; t.hit = 'stop'; }
+      else if (dir > 0 ? bar.high >= t.target : bar.low <= t.target) { state = 'exit'; t.hit = 'target'; }
+    }
+  }
+
+  const call = t && t.side === 'CALL';
+  const arrow = call ? '&#9650;' : '&#9660;';
+  const byModel = s.logic === 'model', who = byModel ? 'model' : 'rule';
+  let cls, head, line, sub = '', title;
+  if (d.stale) {
+    cls = 'closed'; head = '&#9208; MARKET CLOSED'; title = 'CLOSED';
+    line = 'This is the last session, not live data. Do not trade on it.';
+    sub = 'Practise in the Test Lab, or pick a market that is open (the lights at the top right), e.g. with &#128293; Movers.';
+  } else if (!t) {
+    cls = 'wait'; head = '&#9208; WAIT: NO TRADE'; title = 'WAIT';
+    line = s.wait_reason;
+    sub = 'Do nothing until the banner says BUY CALL NOW or BUY PUT NOW.';
+  } else if (state === 'enter') {
+    cls = call ? 'call' : 'put'; head = `${arrow} BUY ${t.side} NOW`; title = `${call ? '▲' : '▼'} BUY ${t.side} NOW`;
+    const exp = byModel && s.model.opinion ? ` (it expects about ${R(call ? s.model.opinion.call_r : s.model.opinion.put_r)})` : '';
+    line = `New ${t.side} signal on the ${hhmm(t.entry_time)} candle: the ${who} expects price to go <b>${call ? 'UP' : 'DOWN'}</b>${exp}.`;
+    sub = !isReplay() && s.candle_closes_at
+      ? `Enter now. The signal is fresh until this candle closes (${dur(s.candle_closes_at - Date.now() / 1000)} left); after that, don't chase it.`
+      : 'Enter now. After the next candle closes it is too late; don\'t chase it.';
+  } else if (state === 'hold') {
+    cls = call ? 'call' : 'put'; head = `${arrow} IN ${t.side}: HOLD`; title = `IN ${t.side} ${pts(t.pl_points)}`;
+    line = `Entered ${plural(t.candles_held, 'candle')} ago at ${num(t.entry)}. Now <b class="${t.pl_points >= 0 ? 'UP' : 'DOWN'}">${pts(t.pl_points)} pts</b>.`;
+    sub = 'Already in it: keep the stop-loss and target below. Not in it: don\'t chase, wait for the next "BUY ... NOW".';
+  } else {
+    const ok = t.hit === 'target';
+    cls = ok ? 'call' : 'put'; title = ok ? 'TARGET HIT' : 'STOP HIT';
+    head = ok ? `&#10003; EXIT ${t.side}: TARGET HIT` : `&#10007; EXIT ${t.side}: STOP HIT`;
+    line = ok ? `Take the profit: about ${pts(t.target_points)} pts.` : `The stop-loss was reached: about -${num(t.stop_points)} pts. Close the trade.`;
+    sub = 'Then wait for the next signal.';
+  }
+  document.title = `${title} · ${s.symbol} ${s.interval}`;
+
+  const levels = t ? `
+    <div class="levels sec">
+      <div><small>Entry</small><b>${num(t.entry)}</b></div>
+      <div><small>Stop-loss</small><b class="DOWN">${num(t.stop)}</b><small>risk ${num(t.stop_points)} pts</small></div>
+      <div><small>Target</small><b class="UP">${num(t.target)}</b><small>gain ${num(t.target_points)} pts</small></div>
+    </div>
+    ${progressBar(t, d.last_price, s.rr)}
+    <div class="why sec">Exit at the stop-loss, at the target, after ${plural(t.candles_left, 'more candle')} (~${dur(t.candles_left * s.interval_seconds)}), or at the market close, whichever comes first.</div>` : '';
+
+  const strip = txt => txt.replace(/^(Trend|Patterns) [A-Z]+: /, '');
+  const lt = s.last_trade;
+  const lastTxt = lt ? `<div class="why sec">Last finished trade: ${lt.side} at ${hhmm(lt.entry_time)} &rarr;
+      <b class="${lt.points > 0 ? 'UP' : 'DOWN'}">${({ target: 'target hit', stop: 'stop hit', timeout: 'time limit', close: 'market close' })[lt.exit]} ${pts(lt.points)} pts</b> at ${hhmm(lt.exit_time)}.</div>` : '';
+  const b = s.backtest, [vc, vt] = verdict(b, who);
+  const how = byModel
+    ? `The <b>self-learning model</b> is in charge: CALL when it expects more than ${R(s.model.edge)} from a CALL (and more than from a PUT), PUT likewise, anything else WAIT. Trend and Patterns are the fixed rule's view, for comparison: the rule alone would say ${s.rule_signal_now}.`
+    : 'The rule: CALL only when Trend is UP <b>and</b> Patterns are BULLISH; PUT only when Trend is DOWN <b>and</b> Patterns are BEARISH; anything else WAIT.';
+  const fresh = state === 'enter' ? `${current}|${t.side}|${t.entry_time}` : '';
+
+  $('sigmeta').textContent = `${s.symbol} ${s.interval}`;
+  $('sigbody').innerHTML = `
+    <div class="banner ${cls}${fresh && fresh !== bannerKey ? ' blink' : ''}">
+      <div class="head">${head}</div>
+      <div class="line">${line}</div>
+      <div class="sub">${sub}</div>
+    </div>
+    ${levels}
+    <div class="legend"><b class="UP">CALL</b> = you profit if price goes UP. <b class="DOWN">PUT</b> = you profit if price goes DOWN.</div>
+    <div class="votes sec">
+      <span class="muted">Trend</span><span class="chip ${v.trend}">${chipArrow(v.trend)} ${v.trend}</span><span class="why">${strip(s.explain[0])}</span>
+      <span class="muted">Patterns</span><span class="chip ${v.pattern}">${chipArrow(v.pattern)} ${v.pattern}</span><span class="why">${s.explain.slice(1).map(strip).join('<br>')}</span>
+      <span class="muted">New entry</span><span class="chip ${s.signal_now}">${chipArrow(s.signal_now)} ${s.signal_now}</span>
+      <span class="why">${how}${t ? ' One trade at a time, so while you hold this trade new entries are ignored.' : ''}</span>
+    </div>
+    ${lastTxt}
+    <div class="bt ${vc}"><b>Track record of the ${who} on this chart</b> (${b.candles} candles${byModel ? ' it judged without having seen them' : ''}): ${b.trades} trades,
+      ${b.win_rate == null ? '-' : Math.round(b.win_rate * 100) + '%'} won, net ${pts(b.total_points)} pts (${b.total_r >= 0 ? '+' : ''}${b.total_r}R), profit factor ${b.profit_factor ?? '-'}.
+      <br><b>${vt}</b></div>`;
+  if (fresh) bannerKey = fresh;
+}
+
+// ---------------- self-learning model ----------------
+function renderModel() {
+  const s = sig, el = $('mlbody');
+  if (!s || !s.model) return;
+  const m = s.model, g = m.gate, rm = m.record.model, rr = m.record.rule;
+  $('mlmeta').textContent = m.phase === 'ready' ? `version ${m.version}` : '';
+  const seg = [['auto', 'Auto'], ['rule', 'Rule only'], ['model', 'Model only']]
+    .map(([k, l]) => `<button class="${logicMode === k ? 'on' : ''}" data-logic="${k}" title="${{
+      auto: 'The rule decides until the model proves itself, then the model decides',
+      rule: 'Always the fixed rule (the model keeps learning in the background)',
+      model: 'Always the model, even before it has proven anything (practice only)' }[k]}">${l}</button>`).join('');
+  const charge = m.active === 'model'
+    ? (g.promoted ? '<b class="UP">The model is in charge of the trade signal</b>: it passed all three checks below.'
+                  : '<b class="DOWN">Model only: the model gives the trade signal although it has not proven itself.</b> Practice only.')
+    : m.mode === 'rule' ? 'The fixed rule gives the trade signal (Rule only). The model keeps learning in the background.'
+    : 'The fixed rule gives the trade signal. The model takes over by itself only once it passes all three checks below, and hands back if it stops passing them.';
+
+  let status;
+  if (m.error) status = `<span class="DOWN">Problem: ${m.error}</span>`;
+  else if (m.phase === 'learning') status = m.lessons
+    ? `Collecting lessons: <b>${m.lessons.toLocaleString()}</b> of ${m.lessons_needed.toLocaleString()} finished trades needed before its first training.`
+    : 'Studying this chart for the first time...';
+  else status = `<b>Version ${m.version}</b>, trained at ${hhmm(m.trained_at)} on ${m.trained_lessons.toLocaleString()} lessons (finished trades).
+    It re-trains by itself every ${m.retrain_every} candles: next in ${plural(m.next_retrain_in, 'candle')}.`;
+
+  // its opinion is only coloured (CALL green / PUT red) when the model is the one giving the trade signal;
+  // otherwise it is a grey "paper" note, so it never competes with the banner above
+  const op = m.opinion, live = m.active === 'model';
+  const opinion = !op ? '' : live
+    ? `<div>Last closed candle: a CALL would make about <b class="${op.call_r > 0 ? 'UP' : 'DOWN'}">${R(op.call_r)}</b>,
+        a PUT about <b class="${op.put_r > 0 ? 'UP' : 'DOWN'}">${R(op.put_r)}</b> &rarr; <span class="chip ${op.says}">${chipArrow(op.says)} ${op.says}</span>
+        <span class="muted small">(it trades only above ${R(m.edge)})</span></div>`
+    : `<div class="why">Paper only, <b>not a signal</b> (the rule is in charge): on the last closed candle the model expects ${R(op.call_r)} from a CALL
+        and ${R(op.put_r)} from a PUT, so it would say ${op.says === 'WAIT' ? 'WAIT' : op.says} (it trades only above ${R(m.edge)}). Follow the banner above.</div>`;
+
+  const row = (name, x) => `<tr><td>${name}</td><td>${x.trades}</td><td>${x.win_rate == null ? '-' : Math.round(x.win_rate * 100) + '%'}</td>
+    <td class="${x.total_r >= 0 ? 'UP' : 'DOWN'}">${x.total_r >= 0 ? '+' : ''}${x.total_r}R</td><td>${R(x.avg_r)}</td></tr>`;
+  const since = m.since ? ` (since ${new Date(m.since * 1000).toLocaleDateString([], { day: 'numeric', month: 'short' })} ${hhmm(m.since)})` : '';
+  const table = m.unseen_candles ? `<div><div class="muted small">Paper trades on ${m.unseen_candles.toLocaleString()} candles it had never seen${since}:</div>
+    <table><tr><th></th><th>Trades</th><th>Won</th><th>Total</th><th>Per trade</th></tr>${row('Model', rm)}${row('Rule, same candles', rr)}</table></div>` : '';
+
+  const ck = (ok, txt) => `<div class="${ok ? 'UP' : 'muted'}">${ok ? '&#10003;' : '&#10007;'} ${txt}</div>`;
+  const gateBox = m.phase === 'ready' ? `<div class="gate ${g.promoted ? 'pass' : ''}">
+    <b>It takes over only when all three are true:</b>
+    ${ck(g.enough, `at least ${g.trades_needed} paper trades on unseen candles (${rm.trades} so far)`)}
+    ${ck(g.beyond_luck, `made money beyond luck: its average minus ${g.z} &times; its luck margin must stay above 0
+      (${rm.se_r == null ? 'not enough trades yet' : `now ${R(rm.avg_r)} &minus; ${g.z} &times; ${rm.se_r.toFixed(2)}R = ${R(g.lower)}`})`)}
+    ${ck(g.beats_rule, `better than the rule on the same candles (${R(rm.avg_r)} vs ${R(rr.avg_r)} per trade)`)}
+    <div>${g.promoted ? '<b class="UP">Passed.</b> In Auto mode the model gives the trade signal.' : '<b class="warn">Not passed yet.</b> In Auto mode the rule stays in charge.'}</div></div>` : '';
+
+  const imp = m.importance && m.importance.length ? `<div><div class="muted small">What its opinion depends on most (this is not proof that it works):</div>
+    ${m.importance.map(x => `<div class="imp"><span>${x.name}</span><i style="width:${Math.min(100, x.pct * 3)}%"></i><span>${x.pct}%</span></div>`).join('')}</div>` : '';
+
+  el.innerHTML = `<div class="ml">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="muted small">Logic</span><span class="seg">${seg}</span>
+      ${m.busy ? '<span class="muted small">&#9881; learning&hellip;</span>' : ''}</div>
+    <div class="incharge">${charge}</div>
+    <div class="why">${status}</div>
+    ${opinion}${table}${gateBox}${imp}
+    <div class="why">It learns only from trades that had already finished, and it is judged only on candles it had never seen.
+      ${m.saved ? `Saved in <code>${m.folder}</code>, so it keeps learning every day you run the app.` : 'Test Lab: kept in memory only; it starts over when the replay data changes.'}</div>
+    <div style="display:flex;gap:8px"><button class="btn2" data-act="retrain" title="Train a new version now on every finished lesson">Retrain now</button>
+      <button class="btn2" data-act="reset" title="Forget everything learned on this chart">Reset</button></div>
+  </div>`;
+  el.querySelectorAll('[data-logic]').forEach(b => b.onclick = () => { logicMode = b.dataset.logic; store.set('logic-mode', logicMode); sigFor = ''; load(); });
+  el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => modelAction(b.dataset.act));
+}
+
+async function modelAction(act) {
+  if (act === 'reset' && !confirm('Forget everything the model has learned on this chart?')) return;
+  const q = { provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value, horizon: +$('horizon').value };
+  try {
+    await fetch('/api/model/' + act, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
+  } catch (e) { /* the card shows the state at the next refresh */ }
+  sigFor = '';
+  setTimeout(load, act === 'retrain' ? 1200 : 0);
+}
+
+// ---------------- markets & most active stocks ----------------
+async function refreshMarkets() {
+  try { mk = await (await fetch('/api/markets')).json(); } catch (e) { return; }
+  for (const key of ['nse', 'us']) {
+    const m = mk[key], el = $('mkt-' + key);
+    el.classList.toggle('open', m.open);
+    el.querySelector('b').textContent = m.open ? 'OPEN' : 'closed';
+    el.querySelector('small').textContent = `${m.next} ${m.next_ist.slice(-9, -4)}`;
+    el.title = `${m.name}: ${m.open ? 'open, closes' : 'closed, opens'} ${m.next_ist} (exchange holidays not included)`;
+  }
+}
+
+function moversHead(market) {
+  return `<div class="mhead"><b>&#128293; Most active stocks</b>
+    <button class="btn2 ${market === 'us' ? 'on' : ''}" data-m="us">US</button><button class="btn2 ${market === 'nse' ? 'on' : ''}" data-m="nse">NSE</button>
+    <span class="spacer"></span><button class="btn2" data-close>&times; close</button></div>`;
+}
+
+async function showMovers(market) {
+  const box = $('movers');
+  const p = $('provider').value;
+  market = market || (p === 'nse' ? 'nse' : p === 'yahoo' ? 'us' : (mk && mk.nse.open ? 'nse' : 'us'));
+  const wire = () => {
+    box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => showMovers(b.dataset.m));
+    box.querySelector('[data-close]').onclick = () => box.classList.remove('show');
+  };
+  box.classList.add('show');
+  box.innerHTML = moversHead(market) + '<div class="muted small">Measuring which stocks are moving the most... (the first time takes a few seconds)</div>';
+  wire();
+  try {
+    const r = await fetch('/api/movers?market=' + market);
+    const m = await r.json();
+    if (!r.ok) throw new Error(m.error || r.statusText);
+    const st = m.status;
+    box.innerHTML = moversHead(market) + `<div class="muted small">${st.open
+        ? 'Market OPEN: ranked by the average size of a 1-minute candle in the last hour. Bigger = more movement = more patterns.'
+        : `Market closed: ranked from its last session. Signals will not be live until it opens (${st.next_ist}).`} Click a row to load it.</div>
+      <table><tr><th>Symbol</th><th>Price</th><th>Avg 1-min move</th><th>Day range</th><th>Today</th></tr>
+      ${m.rows.map(x => `<tr class="row" data-s="${x.symbol}"><td><b>${x.symbol}</b></td><td>${num(x.price)}</td><td>${x.move_1m_pct.toFixed(2)}%</td>
+        <td>${x.day_range_pct.toFixed(1)}%</td><td class="${x.change_pct >= 0 ? 'UP' : 'DOWN'}">${x.change_pct >= 0 ? '+' : ''}${x.change_pct.toFixed(2)}%</td></tr>`).join('')}
+      </table>`;
+    wire();
+    box.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => {
+      $('provider').value = market === 'nse' ? 'nse' : 'yahoo';
+      fillSuggestions();
+      $('symbol').value = tr.dataset.s;
+      box.classList.remove('show');
+      restart();
+    });
+  } catch (e) {
+    box.innerHTML = moversHead(market) + `<div class="small" style="color:var(--down)">Could not load movers: ${e.message}</div>`;
+    wire();
+  }
+}
+
+function fillSuggestions() {
+  $('symlist').innerHTML = (SUGGEST[$('provider').value] || []).map(x => `<option value="${x}">`).join('');
+}
+
+async function load() {
+  const q = new URLSearchParams({
+    provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value,
+    horizon: $('horizon').value, limit: 300,
+  });
+  try {
+    const r = await fetch('/api/scan?' + q);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.statusText);
+    $('err').textContent = '';
+    render(d);
+  } catch (e) {
+    $('err').textContent = 'Error: ' + e.message;
+  }
+}
+
+function restart() {
+  clearInterval(timer);
+  load();
+  timer = setInterval(load, +$('poll').value);
+}
+
+$('go').onclick = restart;
+$('signal').onclick = () => { sigFor = ''; load(); };
+$('poll').onchange = restart;
+$('interval').onchange = restart;
+$('horizon').onchange = restart;
+$('symbol').addEventListener('keydown', e => { if (e.key === 'Enter') restart(); });
+$('provider').onchange = () => { $('symbol').value = DEFAULT_SYMBOL[$('provider').value]; fillSuggestions(); restart(); };
+$('moversbtn').onclick = () => ($('movers').classList.contains('show') ? $('movers').classList.remove('show') : showMovers());
+
+(async function init() {
+  if (TEST) $('moversbtn').style.display = 'none';
+  await refreshMarkets();
+  if (!TEST && mk) {                             // start on a stock market that is open right now
+    const p = mk.nse.open ? 'nse' : 'yahoo';
+    $('provider').value = p;
+    $('symbol').value = DEFAULT_SYMBOL[p];
+  }
+  fillSuggestions();
+  restart();
+  setInterval(refreshMarkets, 60000);
+})();
+</script>
+</body>
+</html>

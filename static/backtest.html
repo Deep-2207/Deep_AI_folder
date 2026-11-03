@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backtest Lab</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #262d38; --text: #e6edf3; --muted: #8b95a3;
+    --up: #26a69a; --down: #ef5350; --accent: #4c8dff; --warn: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, Segoe UI, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  header a { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  header a:hover { color: var(--text); border-color: var(--accent); }
+  select, input, button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: inherit; }
+  input[type=text] { width: 120px; text-transform: uppercase; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  label.chk { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; color: var(--muted); }
+  label.chk input { accent-color: var(--accent); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 12px; padding: 12px 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .nav .lbl { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  #chart { height: 440px; }
+  #seek { width: 100%; margin: 0; accent-color: var(--accent); }
+  .muted { color: var(--muted); }
+  .UP, .ok { color: var(--up); } .DOWN, .bad { color: var(--down); }
+  h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .explain { padding: 12px 14px; display: grid; gap: 8px; }
+  .rules { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; font-size: 13px; }
+  .quiz { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .quiz button.u { border-color: var(--up); color: var(--up); } .quiz button.d { border-color: var(--down); color: var(--down); }
+  .cards { display: grid; gap: 8px; padding: 12px 14px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; }
+  .card .t { font-weight: 700; font-size: 15px; }
+  .card .big { font-size: 26px; font-weight: 800; }
+  .verdict { font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); justify-self: start; }
+  .verdict.good { color: var(--up); border-color: var(--up); } .verdict.bad { color: var(--down); border-color: var(--down); } .verdict.meh { color: var(--warn); border-color: var(--warn); }
+  #list { max-height: 420px; overflow: auto; }
+  .occ { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 7px 14px; border-top: 1px solid var(--line); font-size: 12px; cursor: pointer; align-items: center; }
+  .occ:hover { background: rgba(76,141,255,.08); } .occ.sel { background: rgba(76,141,255,.18); }
+  .empty { padding: 14px; color: var(--muted); }
+  #err { color: var(--down); padding: 0 16px; min-height: 18px; }
+  footer { padding: 0 16px 16px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } #chart { height: 340px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Backtest Lab</h1>
+  <select id="provider">
+    <option value="nse">NSE stocks (Yahoo)</option>
+    <option value="binance">Crypto (Binance)</option>
+    <option value="yahoo">Global (Yahoo)</option>
+  </select>
+  <input type="text" id="symbol" value="RELIANCE" list="nse-symbols" aria-label="Symbol">
+  <datalist id="nse-symbols">
+    <option value="RELIANCE"><option value="TCS"><option value="HDFCBANK"><option value="INFY"><option value="ICICIBANK">
+    <option value="SBIN"><option value="ITC"><option value="LT"><option value="BHARTIARTL"><option value="TMPV">
+    <option value="^NSEI">NIFTY 50</option><option value="^NSEBANK">BANK NIFTY</option>
+  </datalist>
+  <select id="interval" aria-label="Timeframe">
+    <option value="1d" selected>Daily (years)</option><option value="1h">1 hour</option><option value="15m">15 min</option>
+    <option value="5m">5 min</option><option value="1m">1 min</option>
+  </select>
+  <select id="horizon" aria-label="Look-ahead">
+    <option value="3">check 3 candles later</option><option value="5" selected>check 5 candles later</option>
+    <option value="10">check 10 candles later</option><option value="20">check 20 candles later</option>
+  </select>
+  <select id="wsize" aria-label="Window">
+    <option value="20" selected>20-candle windows</option><option value="40">40-candle windows</option><option value="60">60-candle windows</option>
+  </select>
+  <label class="chk"><input type="checkbox" value="Hammer" checked> Hammer</label>
+  <label class="chk"><input type="checkbox" value="Inverted Hammer" checked> Inverted Hammer</label>
+  <label class="chk" title="Same shape as a Hammer but after a rise"><input type="checkbox" value="Hanging Man"> Hanging Man</label>
+  <label class="chk" title="Same shape as an Inverted Hammer but after a rise"><input type="checkbox" value="Shooting Star"> Shooting Star</label>
+  <button id="go" class="primary">Load</button>
+  <span style="flex:1"></span>
+  <a href="/">Live</a><a href="/test">Test Lab</a>
+</header>
+<div id="err"></div>
+<main>
+  <section class="panel">
+    <div class="nav">
+      <button id="first" title="First window">&#9198;</button>
+      <button id="prev">&#9664; Prev <span class="wn">20</span></button>
+      <button id="next">Next <span class="wn">20</span> &#9654;</button>
+      <button id="last" title="Last window">&#9197;</button>
+      <span style="width:10px"></span>
+      <button id="pprev">&#9664; Prev pattern</button>
+      <button id="pnext">Next pattern &#9654;</button>
+      <label class="chk" style="margin-left:8px" title="Hide the candles after the window so you can guess first">
+        <input type="checkbox" id="hide"> Quiz mode (hide what came next)</label>
+      <span class="lbl" id="wlabel"></span>
+    </div>
+    <div id="chart"></div>
+    <div style="padding:6px 12px 10px"><input type="range" id="seek" min="0" max="0" value="0" aria-label="Jump through history"></div>
+    <h2>Selected pattern explained</h2>
+    <div class="explain" id="explain"><div class="muted">Click a pattern on the right, or use "Next pattern".</div></div>
+  </section>
+  <aside class="panel" style="align-self:start">
+    <h2>Results over the whole history</h2>
+    <div class="cards" id="cards"><div class="empty">Loading...</div></div>
+    <h2>Every occurrence <span class="muted" style="font-weight:400">(newest first, click to view)</span></h2>
+    <div id="list"></div>
+  </aside>
+</main>
+<footer>Grey candles = what happened after the window / pattern. "Worked" = price was in the textbook direction after the chosen number of candles.
+Hammer and Inverted Hammer are textbook bullish (expect UP); Hanging Man and Shooting Star bearish (expect DOWN). For learning only.</footer>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const tz = -new Date().getTimezoneOffset() * 60;
+const num = v => v == null ? '-' : v.toLocaleString(undefined, { maximumFractionDigits: Math.abs(v) >= 0.01 ? 2 : 6 });
+const pts = v => v == null ? '-' : (v >= 0 ? '+' : '') + num(v);
+const pct = v => v == null ? '-' : Math.round(v * 100) + '%';
+
+const chart = LightweightCharts.createChart($('chart'), {
+  layout: { background: { color: css('--panel') }, textColor: css('--muted') },
+  grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } },
+  timeScale: { timeVisible: true, secondsVisible: false, borderColor: css('--line') },
+  rightPriceScale: { borderColor: css('--line') },
+  autoSize: true,
+});
+const series = chart.addCandlestickSeries({
+  upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down'), borderVisible: false,
+});
+
+let D = null, start = 0, sel = null, revealed = new Set();
+
+const daily = () => D && D.interval_seconds >= 86400;
+const fmtTime = t => new Date(t * 1000).toLocaleString([], daily()
+  ? { day: 'numeric', month: 'short', year: 'numeric' }
+  : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const W = () => +$('wsize').value;
+const H = () => D.horizon;
+
+async function load() {
+  const names = [...document.querySelectorAll('header input[type=checkbox]:checked')].map(x => x.value);
+  const q = new URLSearchParams({ provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value,
+    horizon: $('horizon').value, patterns: names.join(','), candles: 5000 });
+  $('go').disabled = true; $('go').textContent = 'Loading...';
+  try {
+    const r = await fetch('/api/backtest?' + q);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.statusText);
+    $('err').textContent = '';
+    D = d; sel = null; revealed = new Set();
+    $('seek').max = Math.max(0, D.candles.length - W());
+    renderSummary(); renderList();
+    const lastOcc = D.occurrences[D.occurrences.length - 1];
+    if (lastOcc) select(lastOcc.index); else { start = Math.max(0, D.candles.length - W()); drawWindow(); }
+  } catch (e) {
+    $('err').textContent = 'Error: ' + e.message;
+  } finally {
+    $('go').disabled = false; $('go').textContent = 'Load';
+  }
+}
+
+function verdict(s, base) {
+  if (!s.measured) return ['meh', 'No measured cases yet.'];
+  if (s.measured < 15) return ['meh', `Only ${s.measured} cases: too few to trust.`];
+  // compare with how often the market moved that way anyway
+  const expect = s.textbook === 'UP' ? base : 1 - base;
+  const diff = s.worked_pct - expect;
+  if (diff >= 0.1) return ['good', `Worked ${Math.round(diff * 100)} points more often than the market alone.`];
+  if (diff <= -0.1) return ['bad', `Worked ${Math.round(-diff * 100)} points LESS often than the market alone.`];
+  return ['meh', 'About the same as the market alone: no real edge.'];
+}
+
+function renderSummary() {
+  const base = D.baseline_up_pct;
+  const cards = Object.entries(D.summary).map(([name, s]) => {
+    const [cls, txt] = verdict(s, base);
+    return `<div class="card">
+      <div class="t">${name} <span class="muted" style="font-weight:400;font-size:12px">textbook: expect ${s.textbook}</span></div>
+      <div><span class="big ${s.worked_pct == null ? '' : s.worked_pct >= 0.5 ? 'ok' : 'bad'}">${pct(s.worked_pct)}</span>
+        <span class="muted"> worked in ${s.measured} measured cases (${s.found} found)</span></div>
+      <div class="muted" style="font-size:12px">After ${D.horizon} candles: avg ${pts(s.avg_move)}, median ${pts(s.median_move)} pts.
+        On average it rose up to ${pts(s.avg_best_up)} and fell down to ${pts(s.avg_worst_down)} on the way.</div>
+      <span class="verdict ${cls}">${txt}</span>
+    </div>`;
+  }).join('');
+  $('cards').innerHTML = cards + `<div class="muted" style="font-size:12px">For comparison, ANY candle in this history was followed by a rise
+    ${pct(base)} of the time (${D.candles.length} candles of ${D.symbol}, ${fmtTime(D.candles[0].time)} to ${fmtTime(D.candles[D.candles.length - 1].time)}).</div>`;
+}
+
+function renderList() {
+  const occ = [...D.occurrences].reverse();
+  if (!occ.length) { $('list').innerHTML = '<div class="empty">None of the chosen patterns found in this history.</div>'; return; }
+  $('list').innerHTML = occ.map(o => {
+    const res = o.status === 'done' ? `<b class="${o.worked ? 'ok' : 'bad'}">${o.worked ? '&#10003;' : '&#10007;'} ${pts(o.move)}</b>`
+      : `<span class="muted">${o.status === 'gap' ? 'market closed' : 'too recent'}</span>`;
+    return `<div class="occ${sel === o.index ? ' sel' : ''}" data-i="${o.index}">
+      <span>${fmtTime(o.time)}<br><span class="muted">${o.name}</span></span><span class="muted">${num(o.close)}</span>${res}</div>`;
+  }).join('');
+  $('list').querySelectorAll('.occ').forEach(el => el.onclick = () => select(+el.dataset.i));
+}
+
+function select(idx) {
+  sel = idx;
+  start = Math.max(0, Math.min(idx - W() + 1, D.candles.length - 1));    // pattern = last candle of the window
+  drawWindow();
+  renderList();
+  const el = $('list').querySelector('.occ.sel');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+function drawWindow() {
+  if (!D) return;
+  const c = D.candles, n = c.length, w = W(), h = H();
+  start = Math.max(0, Math.min(start, n - 1));
+  const end = Math.min(n, start + w);                    // window = [start, end)
+  const lastIdx = end - 1;
+  const hidden = $('hide').checked && !revealed.has(start);
+  const showTo = hidden ? end : Math.min(n, end + h);
+  const grey = 'rgba(139,149,163,.45)';
+  series.setData(c.slice(start, showTo).map((x, k) => {
+    const bar = { time: x.time + tz, open: x.open, high: x.high, low: x.low, close: x.close };
+    if (start + k >= end) Object.assign(bar, { color: grey, wickColor: grey, borderColor: grey });
+    return bar;
+  }));
+  const marks = D.occurrences.filter(o => o.index >= start && o.index < end).map(o => ({
+    time: o.time + tz, position: o.direction === 'bearish' ? 'aboveBar' : 'belowBar',
+    shape: o.direction === 'bearish' ? 'arrowDown' : 'arrowUp',
+    color: o.index === sel ? css('--accent') : o.direction === 'bearish' ? css('--down') : css('--up'),
+    text: o.index === sel ? o.name : '',
+  }));
+  series.setMarkers(marks);
+  chart.timeScale().fitContent();
+
+  $('seek').value = start;
+  document.querySelectorAll('.wn').forEach(x => x.textContent = w);
+  $('wlabel').textContent = `candles ${start + 1}-${end} of ${n}  |  ${fmtTime(c[start].time)} to ${fmtTime(c[end - 1].time)}`
+    + (hidden ? '' : `  |  grey = next ${Math.min(h, n - end)} candles`);
+  const inWin = D.occurrences.filter(o => o.index >= start && o.index < end);
+  $('prev').disabled = start === 0; $('first').disabled = start === 0;
+  $('next').disabled = end >= n; $('last').disabled = end >= n;
+  explain(inWin.find(o => o.index === sel) || inWin[inWin.length - 1], hidden, lastIdx);
+}
+
+function explain(o, hidden, lastIdx) {
+  const box = $('explain');
+  if (!o) { box.innerHTML = '<div class="muted">No chosen pattern in this window. Use "Next pattern" to jump to one.</div>'; return; }
+  const ham = o.name === 'Hammer' || o.name === 'Hanging Man';
+  const afterFall = o.name === 'Hammer' || o.name === 'Inverted Hammer';
+  const row = (rule, value, ok) => `<span class="${ok ? 'ok' : 'bad'}">${ok ? '&#10003;' : '&#10007;'}</span><span>${rule}</span><b>${value}</b>`;
+  const rules = [
+    row('Small body: 10-40% of the whole candle', o.body_pct.toFixed(0) + '%', o.body_pct > 10 && o.body_pct <= 40),
+    ham ? row('Long LOWER wick: at least 2x the body', (o.lower_wick_x_body ?? 0).toFixed(1) + 'x', o.lower_wick_x_body >= 2)
+        : row('Long UPPER wick: at least 2x the body', (o.upper_wick_x_body ?? 0).toFixed(1) + 'x', o.upper_wick_x_body >= 2),
+    ham ? row('Almost no upper wick: at most 15% of the candle', o.upper_wick_pct.toFixed(0) + '%', o.upper_wick_pct <= 15)
+        : row('Almost no lower wick: at most 15% of the candle', o.lower_wick_pct.toFixed(0) + '%', o.lower_wick_pct <= 15),
+    afterFall ? row('Comes after a FALL: last 5 candles dropped more than 1 ATR', `${pts(o.trend_move)} pts (${o.trend_atr.toFixed(1)} ATR)`, o.trend_atr < -1)
+              : row('Comes after a RISE: last 5 candles rose more than 1 ATR', `${pts(o.trend_move)} pts (${o.trend_atr.toFixed(1)} ATR)`, o.trend_atr > 1),
+  ].join('');
+  const expect = o.direction === 'bearish' ? 'DOWN' : 'UP';
+  let outcome;
+  if (o.status !== 'done') outcome = `<div class="muted">Outcome: ${o.status === 'gap' ? 'the market closed before ' + H() + ' candles passed' : 'not enough candles after it yet'}.</div>`;
+  else if (hidden && o.index !== lastIdx) outcome = '<div class="muted">Outcome hidden (quiz mode). Click this pattern in the list to quiz on it.</div>';
+  else if (hidden) outcome = `<div class="quiz"><b>Your guess:</b> after ${H()} candles will price be higher or lower?
+      <button class="u" data-g="UP">&#9650; Higher</button><button class="d" data-g="DOWN">&#9660; Lower</button>
+      <span class="muted" id="score"></span></div>`;
+  else outcome = `<div>Outcome after ${H()} candles: <b class="${o.move >= 0 ? 'UP' : 'DOWN'}">${pts(o.move)} pts (${o.move_pct >= 0 ? '+' : ''}${o.move_pct.toFixed(2)}%)</b>
+      &rarr; textbook said ${expect}, so it <b class="${o.worked ? 'ok' : 'bad'}">${o.worked ? 'WORKED' : 'FAILED'}</b>.
+      <span class="muted">On the way it rose up to ${pts(o.best_up)} and fell down to ${pts(o.worst_down)}.</span></div>`;
+
+  box.innerHTML = `<div><b style="font-size:16px">${o.name}</b> <span class="muted">${fmtTime(o.time)} | O ${num(o.open)} H ${num(o.high)} L ${num(o.low)} C ${num(o.close)}</span></div>
+    <div class="rules">${rules}</div>${outcome}`;
+  box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => guess(o, b.dataset.g));
+  showScore();
+}
+
+function score() { try { return JSON.parse(localStorage.getItem('bt-quiz')) || { right: 0, total: 0 }; } catch (e) { return { right: 0, total: 0 }; } }
+function showScore() {
+  const s = score(), el = $('score');
+  if (el && s.total) el.textContent = `your score so far: ${s.right}/${s.total} (${Math.round(s.right / s.total * 100)}%)`;
+}
+function guess(o, g) {
+  const actual = o.move > 0 ? 'UP' : 'DOWN';
+  const s = score(); s.total++; if (g === actual) s.right++;
+  try { localStorage.setItem('bt-quiz', JSON.stringify(s)); } catch (e) { /* storage blocked */ }
+  revealed.add(start);
+  drawWindow();
+  $('explain').insertAdjacentHTML('afterbegin', `<div class="${g === actual ? 'ok' : 'bad'}" style="font-weight:700">${g === actual ? 'Correct!' : 'Not this time.'}
+    Price went ${actual}. Your score: ${s.right}/${s.total}.</div>`);
+}
+
+function jumpPattern(dir) {
+  if (!D || !D.occurrences.length) return;
+  const cur = sel ?? (dir > 0 ? start - 1 : start + W());
+  const list = D.occurrences.map(o => o.index);
+  const target = dir > 0 ? list.find(i => i > cur) : [...list].reverse().find(i => i < cur);
+  if (target != null) select(target);
+}
+
+$('go').onclick = load;
+$('symbol').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+['provider', 'interval', 'horizon'].forEach(id => $(id).onchange = load);
+document.querySelectorAll('header input[type=checkbox]').forEach(x => x.onchange = load);
+$('provider').onchange = () => { $('symbol').value = { nse: 'RELIANCE', binance: 'BTCUSDT', yahoo: 'AAPL' }[$('provider').value]; load(); };
+$('wsize').onchange = () => { if (D) { $('seek').max = Math.max(0, D.candles.length - W()); sel != null ? select(sel) : drawWindow(); } };
+$('hide').onchange = () => { revealed = new Set(); drawWindow(); };
+$('first').onclick = () => { sel = null; start = 0; drawWindow(); };
+$('last').onclick = () => { sel = null; start = D.candles.length - W(); drawWindow(); };
+$('prev').onclick = () => { sel = null; start -= W(); drawWindow(); };
+$('next').onclick = () => { sel = null; start += W(); drawWindow(); };
+$('pprev').onclick = () => jumpPattern(-1);
+$('pnext').onclick = () => jumpPattern(1);
+$('seek').oninput = () => { sel = null; start = +$('seek').value; drawWindow(); };
+document.addEventListener('keydown', e => {
+  if (/INPUT|SELECT/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (e.key === 'ArrowRight') $('next').click();
+  if (e.key === 'ArrowLeft') $('prev').click();
+});
+load();
+</script>
+</body>
+</html>
