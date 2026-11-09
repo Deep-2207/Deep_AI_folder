@@ -6,7 +6,7 @@ Pulls live candles from free, keyless APIs and detects candlestick / chart patte
 
 ```
 pip install -r requirements.txt
-python app.py            # dashboard at http://127.0.0.1:5000
+python app.py            # dashboard at http://127.0.0.1:5000 (Knowledge page: /knowledge)
 python -u live_cli.py    # or terminal scanner (BTCUSDT 1m)
 python -m unittest discover -s tests -t .
 ```
@@ -16,6 +16,47 @@ CLI examples:
 python -u live_cli.py --provider yahoo --symbol AAPL
 python -u live_cli.py --provider yahoo --symbol RELIANCE.NS --poll 15
 python -u live_cli.py --symbol ETHUSDT --interval 5m
+```
+
+## Knowledge first: books -> approved rules -> signals (http://127.0.0.1:5000/knowledge)
+
+Trading knowledge comes from documents, is reviewed by you, and only then reaches the signal. Details for
+Claude Code are in `CLAUDE.md`.
+
+1. **Upload** a book (PDF with a text layer, .txt or .md) on the Knowledge page, or put it in `documents/uploaded_books/`.
+   **Read** extracts its text page by page (`documents/extracted_text/`) and lists every section and which ones
+   are already extracted.
+2. **Ask Claude Code** to extract it (the page shows the exact request to copy). Claude writes one Markdown file per
+   pattern, strategy or concept, with the source section, page and verbatim quotes, the measurable conditions,
+   confirmation, invalidation, every missing rule ("Not specified in source"), and suggestions kept separate. Status
+   PENDING_REVIEW. Every quote is checked automatically against its cited page.
+3. **Review** each item on the Knowledge page: Approve (with a note recording your decisions) or Reject.
+4. Approved items with matching Python code become **IMPLEMENTED**. The others wait until Claude writes the code and
+   tests. **Run backtest** measures an implemented pattern (or the rule) on NIFTY 50 and BANK NIFTY daily data,
+   development (first 70%) and out-of-sample (last 30%) separately, against "any candle": **BACKTESTED**.
+
+| Status | Meaning |
+|---|---|
+| EXTRACTED / PENDING_REVIEW | extracted, waiting for your review (`documents/extracted_knowledge/`) |
+| APPROVED | you accepted the definition (`knowledge/approved_*`) |
+| IMPLEMENTED / BACKTESTED | approved, with Python code and tests (and measured): **used by the live signal** |
+| REJECTED | kept for the record, never used |
+
+**The gate**: the live trade signal uses only patterns and strategies that are IMPLEMENTED or BACKTESTED.
+It reads the files and runs fixed Python rules; it never asks an AI anything while the market runs.
+Until you approve the "Trend + pattern rule" and at least one pattern, the signal says **WAIT (Knowledge gate)**.
+The self-learning model may only take over once its strategy file is approved as well.
+
+What is there now: the 21 patterns the scanner already detected and the 2 strategies, written from the existing code
+(no book source yet); and from `dummy_trading_knowledge_book.pdf`: Bullish/Bearish Engulfing (the book's rule is
+looser than the code's, so you need to decide), candle basics, support/resistance, volume confirmation, signal outcome
+tracking (the book's AMBIGUOUS outcome vs the code's stop-first assumption) and risk/testing rules. All are
+PENDING_REVIEW. Overview: `knowledge/knowledge_index.md`.
+
+```
+python -m document_reader read --all          # read every uploaded book, show coverage
+python -m document_reader check               # verify every source quote
+python -m stockpatterns.knowledge gate        # what the live signal may use now
 ```
 
 ## Data feeds (no API key)
@@ -164,10 +205,25 @@ at once, re-training every 200 candles, the gate, saving and loading, Test Lab r
 
 - **US stocks (live)**: Yahoo's 1-minute data is live during US hours (20:00-02:30 IST in winter, 19:00-01:30 in summer).
 - **NSE India stocks**: type `SBIN`, `MCX`, `RELIANCE`... (`.NS` is added). Live during 09:15-15:30 IST.
+  The symbol box suggests all **NIFTY 500** stocks with their company names (search `SBIN` or `state bank`),
+  plus NIFTY 50 / Bank Nifty, on the Live, Test Lab and Backtest pages (`static/nifty500.js`, from NSE's official list).
 - The market lights in the header show which exchange is open (holidays are not included).
 - **🔥 Movers** ranks liquid, usually-volatile stocks by their average 1-minute candle in the last hour, so you can pick
   one that is really moving (US: SOXL, RIOT, MARA, PLTR, COIN, AMD...; NSE: MCX, ANGELONE, SBIN, DIXON, BSE...).
 - On page load the app starts on a market that is open (NSE in the Indian daytime, US in the evening).
+
+## Indicators (fx Indicators button above the chart)
+
+Click **Indicators**, search (`expo`, `ema`, `moving average`...) and click a result to add it to the chart
+(`static/indicators.js`). Available now: **Moving Average Exponential (EMA)**, same formula as TradingView's
+`ta.ema` (seeded with the simple average of the first *Length* candles).
+
+- Add it several times for crossovers (e.g. EMA 9 + EMA 21); each gets its own colour.
+- The legend on the top-left shows `EMA 20 close` and its value under the crosshair (or the latest value).
+  Hover a row for buttons: hide/show, settings (Length, Source = close/open/high/low/hl2/hlc3/ohlc4, Color, Width), remove.
+- Saved in the browser and kept across refresh, symbols and timeframes. Works on the Live page and the Test Lab.
+- The EMA is computed from the candles shown on the chart (the last 300), so a long EMA starts later on the chart.
+- New indicators are added as one entry in `TYPES` at the top of `static/indicators.js`.
 
 ## Drawing tools (left toolbar, like TradingView)
 
@@ -184,10 +240,10 @@ A CALL/PUT box shows entry, target and stop in points and %, the R:R ratio, and 
 target or the stop (stop is assumed first if both fall inside one candle). The "Your trade boxes" panel lists them
 with live P/L. The prediction card has a **Draw box from this prediction** button. Drawings are saved in the browser
 per symbol and are anchored on time and price, so they stay put across zoom, refresh and timeframe changes.
-Candles older than the 300 shown are not checked for hits.
+Candles older than the 300 shown are not checked for hits.  
 
 Tests: `python -m unittest discover -s tests -t .` (Python, about a minute) and
-`node --test tests/drawings.test.js tests/extension_background.test.js` (drawing tools, Chrome extension).
+`node --test tests/drawings.test.js tests/indicators.test.js tests/extension_background.test.js` (drawing tools, indicators, Chrome extension).
 
 Thresholds are constants at the top of `detect()`; tune them per market and timeframe.
 Not financial advice.

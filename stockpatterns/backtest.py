@@ -8,6 +8,7 @@ import pandas as pd
 from .patterns import TREND_LOOKBACK, detect
 
 TEXTBOOK = {"Hammer": 1, "Inverted Hammer": 1, "Hanging Man": -1, "Shooting Star": -1}
+DIRECTION = {"bullish": 1, "bearish": -1}
 
 
 def study(df: pd.DataFrame, names: list[str], horizon: int = 5) -> dict:
@@ -26,7 +27,7 @@ def study(df: pd.DataFrame, names: list[str], horizon: int = 5) -> dict:
     for p in detect(df, chart_patterns=False):
         if p["name"] not in names:
             continue
-        i, d = p["index"], TEXTBOOK.get(p["name"], 0)
+        i, d = p["index"], TEXTBOOK.get(p["name"], DIRECTION.get(p["direction"], 0))
         rng = h[i] - l[i]
         body = abs(c[i] - o[i])
         row = {
@@ -61,7 +62,7 @@ def study(df: pd.DataFrame, names: list[str], horizon: int = 5) -> dict:
     for name in names:
         rows = [r for r in occ if r["name"] == name]
         done = [r for r in rows if r["status"] == "done"]
-        d = TEXTBOOK.get(name, 0)
+        d = TEXTBOOK.get(name, DIRECTION.get(rows[0]["direction"], 0) if rows else 0)
         moves = np.array([r["move"] for r in done])
         summary[name] = {
             "found": len(rows),
@@ -72,6 +73,51 @@ def study(df: pd.DataFrame, names: list[str], horizon: int = 5) -> dict:
             "median_move": float(np.median(moves)) if done else None,
             "avg_best_up": float(np.mean([r["best_up"] for r in done])) if done else None,
             "avg_worst_down": float(np.mean([r["worst_down"] for r in done])) if done else None,
-            "textbook": "UP" if d > 0 else "DOWN",
+            "textbook": "UP" if d > 0 else "DOWN" if d < 0 else "NONE",
         }
     return {"horizon": horizon, "baseline_up_pct": base_up, "occurrences": occ, "summary": summary}
+
+
+# ---------------------------------------------------------------- knowledge-base backtests (Knowledge page)
+# Development data = the first DEV_SPLIT of the candles, out-of-sample = the rest, reported separately
+# (book: "Keep development data separate from out-of-sample evaluation data"). No costs or slippage.
+DEV_SPLIT = 0.7
+
+
+def pattern_performance(df: pd.DataFrame, name: str, horizon: int = 5, split: float = DEV_SPLIT) -> dict:
+    """How often price moved the pattern's way `horizon` candles later, vs how often ANY candle did, in the
+    development part and in the out-of-sample part of the history."""
+    res = study(df, [name], horizon)
+    n, cut = len(df), int(len(df) * split)
+    c = df["close"].to_numpy(dtype=float)
+    occ = [r for r in res["occurrences"] if r["status"] == "done"]
+    d = DIRECTION.get(occ[0]["direction"], 0) if occ else 0
+
+    def part(lo, hi):
+        rows = [r for r in occ if lo <= r["index"] < hi]
+        moves = np.array([c[j + horizon] - c[j] for j in range(lo, min(hi, n - horizon))])
+        base = float(np.mean(moves * d > 0)) if d and len(moves) else (float(np.mean(moves > 0)) if len(moves) else None)
+        out = {"candles": hi - lo, "found": len(rows), "baseline_pct": round(base * 100, 1) if base is not None else None}
+        if rows:
+            hit = float(np.mean([(r["move"] * d > 0) if d else (r["move"] > 0) for r in rows]))
+            out.update(hit_pct=round(hit * 100, 1), edge_pct=round((hit - base) * 100, 1) if base is not None else None,
+                       avg_move_pct=round(float(np.mean([r["move_pct"] for r in rows])), 3))
+        return out
+
+    return {"pattern": name, "direction": {1: "UP", -1: "DOWN"}.get(d, "NONE"), "horizon": horizon,
+            "development": part(0, cut), "out_of_sample": part(cut, n)}
+
+
+def rule_performance(df: pd.DataFrame, pattern_names: set[str], horizon: int = 5, split: float = DEV_SPLIT) -> dict:
+    """The trend + pattern rule (signal.py) replayed on this history with only `pattern_names`, trades split by
+    entry candle into development and out-of-sample."""
+    from . import signal as S
+    pats = [p for p in detect(df) if p["name"] in pattern_names]
+    k = S.components(df, pats, horizon)
+    trades, _ = S.run_trades(df, S.decide(k["pattern"], k["trend"]), k["atr"], horizon * 4)
+    cut = int(len(df) * split)
+    part = lambda ts: {kk: v for kk, v in S.summarize(ts, 0).items() if kk not in ("recent", "candles")} | {
+        "avg_r": round(float(np.mean([x["r"] for x in ts])), 3) if ts else None}
+    return {"patterns": sorted(pattern_names), "horizon": horizon,
+            "development": part([x for x in trades if x["entry_index"] < cut]),
+            "out_of_sample": part([x for x in trades if x["entry_index"] >= cut])}

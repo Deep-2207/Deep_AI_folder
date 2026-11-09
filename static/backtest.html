@@ -64,6 +64,17 @@
     <option value="SBIN"><option value="ITC"><option value="LT"><option value="BHARTIARTL"><option value="TMPV">
     <option value="^NSEI">NIFTY 50</option><option value="^NSEBANK">BANK NIFTY</option>
   </datalist>
+  <script src="/static/nifty500.js"></script>
+  <script>   /* add every NIFTY 500 stock (with company name) to the NSE symbol suggestions */
+    (function () {
+      const dl = document.getElementById('nse-symbols'), have = new Set([...dl.options].map(o => o.value));
+      const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+      const name = new Map((window.NIFTY500 || []).map(r => [r[0], `${r[1]} · ${r[2]}`]));
+      [...dl.options].forEach(o => { if (!o.textContent && name.has(o.value)) o.textContent = name.get(o.value); });
+      dl.insertAdjacentHTML('beforeend', (window.NIFTY500 || []).filter(r => !have.has(r[0]))
+        .map(r => `<option value="${esc(r[0])}">${esc(r[1])} · ${esc(r[2])}</option>`).join(''));
+    })();
+  </script>
   <select id="interval" aria-label="Timeframe">
     <option value="1d" selected>Daily (years)</option><option value="1h">1 hour</option><option value="15m">15 min</option>
     <option value="5m">5 min</option><option value="1m">1 min</option>
@@ -81,7 +92,7 @@
   <label class="chk" title="Same shape as an Inverted Hammer but after a rise"><input type="checkbox" value="Shooting Star"> Shooting Star</label>
   <button id="go" class="primary">Load</button>
   <span style="flex:1"></span>
-  <a href="/">Live</a><a href="/test">Test Lab</a>
+  <a href="/">Live</a><a href="/market">Market Radar</a><a href="/test">Test Lab</a><a href="/knowledge">Knowledge</a>
 </header>
 <div id="err"></div>
 <main>

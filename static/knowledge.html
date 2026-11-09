@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Management</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #262d38; --text: #e6edf3; --muted: #8b95a3;
+    --up: #26a69a; --down: #ef5350; --accent: #4c8dff; --warn: #f0b429; --violet: #b388ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, Segoe UI, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  .spacer { flex: 1; }
+  .navlink { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .navlink:hover { color: var(--text); border-color: var(--accent); }
+  button, select, input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.ok { border-color: var(--up); color: var(--up); } button.ok:hover { background: rgba(38,166,154,.15); }
+  button.no { border-color: var(--down); color: var(--down); } button.no:hover { background: rgba(239,83,80,.15); }
+  button:disabled { opacity: .5; cursor: default; }
+  main { padding: 12px 16px 24px; display: grid; gap: 12px; max-width: 1500px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .panel > h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+  .pad { padding: 12px 14px; }
+  .muted { color: var(--muted); } .small { font-size: 12px; }
+  /* pipeline */
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+  .flow span { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--bg); }
+  .flow b { color: var(--accent); margin-right: 4px; }
+  .flow i { color: var(--muted); font-style: normal; }
+  /* gate */
+  .gate { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .gate div { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .gate div.on { border-color: var(--up); } .gate div.off { border-color: var(--warn); }
+  .gate small { display: block; color: var(--muted); font-size: 11px; }
+  /* status chips */
+  .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 5px; border: 1px solid var(--line); white-space: nowrap; }
+  .s-EXTRACTED { color: var(--muted); }
+  .s-PENDING_REVIEW { color: var(--warn); border-color: var(--warn); }
+  .s-APPROVED { color: var(--accent); border-color: var(--accent); }
+  .s-IMPLEMENTED { color: var(--up); border-color: var(--up); }
+  .s-BACKTESTED { color: var(--violet); border-color: var(--violet); }
+  .s-REJECTED { color: var(--down); border-color: var(--down); }
+  .counts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .counts button { font-size: 12px; padding: 3px 9px; }
+  .counts button.on { background: rgba(76,141,255,.18); border-color: var(--accent); }
+  /* layout */
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 12px; align-items: start; }
+  @media (max-width: 1000px) { .two { grid-template-columns: 1fr; } }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .tools input { flex: 1; min-width: 140px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 12px; padding: 4px 10px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: rgba(76,141,255,.22); color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 6px 10px; }
+  td { padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr.row { cursor: pointer; } tr.row:hover { background: rgba(76,141,255,.08); } tr.row.sel { background: rgba(76,141,255,.16); }
+  .tag { font-size: 11px; color: var(--muted); }
+  .warnmark { color: var(--warn); font-weight: 700; }
+  .listwrap { max-height: 72vh; overflow: auto; }
+  /* detail */
+  #detail { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  .actions input { flex: 1; min-width: 160px; }
+  .decision { margin: 12px 14px 0; border: 1px solid var(--warn); background: rgba(240,180,41,.08); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+  .problems { margin: 12px 14px 0; border: 1px solid var(--down); background: rgba(239,83,80,.08); border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+  .src { margin: 0 14px; font-size: 12px; }
+  .src li { margin: 4px 0; }
+  .src .ok { color: var(--up); } .src .bad { color: var(--down); }
+  .md { padding: 4px 14px 14px; }
+  .md h1 { font-size: 18px; margin: 12px 0 6px; } .md h2 { font-size: 14px; margin: 16px 0 6px; color: var(--accent); }
+  .md h3 { font-size: 13px; margin: 12px 0 4px; }
+  .md p, .md li { font-size: 13px; } .md ul, .md ol { padding-left: 20px; margin: 4px 0; }
+  .md code { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; }
+  .md blockquote { margin: 8px 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--bg); color: var(--muted); }
+  .md table { margin: 6px 0; font-size: 12px; } .md th, .md td { border: 1px solid var(--line); padding: 4px 6px; }
+  details { margin: 10px 14px 0; font-size: 12px; } summary { cursor: pointer; color: var(--muted); }
+  .bt { margin: 12px 14px 0; border: 1px solid var(--violet); border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+  .bt table { font-size: 12px; } .bt td, .bt th { padding: 3px 6px; }
+  .pos { color: var(--up); } .neg { color: var(--down); }
+  /* documents */
+  .doc { border-top: 1px solid var(--line); padding: 10px 14px; }
+  .doc:first-child { border-top: 0; }
+  .doc .sec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: 12px; margin-top: 6px; }
+  .ask { margin-top: 8px; font-size: 12px; background: var(--bg); border: 1px dashed var(--accent); border-radius: 6px; padding: 6px 8px; }
+  .upload { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  #toast { position: fixed; right: 16px; bottom: 16px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; max-width: 420px; display: none; z-index: 50; font-size: 13px; }
+  #toast.err { border-color: var(--down); }
+  .empty { padding: 16px 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Knowledge Management</h1>
+  <span class="muted small">Books &rarr; extracted knowledge &rarr; your review &rarr; Python rules &rarr; signals</span>
+  <span class="spacer"></span>
+  <a class="navlink" href="/">Live</a>
+  <a class="navlink" href="/market">Market Radar</a>
+  <a class="navlink" href="/test">Test Lab</a>
+  <a class="navlink" href="/backtest">Backtest</a>
+</header>
+<main>
+  <section class="panel">
+    <h2>How knowledge reaches the trade signal</h2>
+    <div class="pad">
+      <div class="flow">
+        <span><b>1</b>Upload &amp; read documents</span><i>&rarr;</i>
+        <span><b>2</b>Claude extracts (with page refs)</span><i>&rarr;</i>
+        <span><b>3</b>You review: approve / reject</span><i>&rarr;</i>
+        <span><b>4</b>Python rule + tests</span><i>&rarr;</i>
+        <span><b>5</b>Pattern detection on NIFTY / BANK NIFTY / stocks</span><i>&rarr;</i>
+        <span><b>6</b>Signal: CALL / PUT / WAIT</span><i>&rarr;</i>
+        <span><b>7</b>Outcomes &amp; backtests</span>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">Only items that are <span class="chip s-IMPLEMENTED">IMPLEMENTED</span> or
+        <span class="chip s-BACKTESTED">BACKTESTED</span> are used by the live signal. Approving a pattern whose code already follows
+        its definition makes it IMPLEMENTED at once. The signal never asks an AI anything: it runs fixed Python rules.</p>
+      <div class="gate" id="gate" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Documents <span class="muted" style="font-weight:400">(documents/uploaded_books)</span></h2>
+    <div class="upload">
+      <input type="file" id="file" accept=".pdf,.txt,.md">
+      <button class="primary" id="upload">Upload &amp; read</button>
+      <span class="small muted">PDF (with a text layer), .txt or .md. Reading extracts the text page by page and lists every
+        section; Claude then writes the knowledge files when you ask it in Claude Code.</span>
+    </div>
+    <div id="docs"><div class="empty">Loading...</div></div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <h2>Knowledge <span class="muted" style="font-weight:400" id="count"></span></h2>
+      <div class="tools">
+        <div class="seg" id="kinds">
+          <button data-k="" class="on">All</button><button data-k="pattern">Patterns</button>
+          <button data-k="strategy">Strategies</button><button data-k="concept">Concepts</button>
+        </div>
+        <input id="q" type="search" placeholder="Search name...">
+      </div>
+      <div class="tools counts" id="counts"></div>
+      <div class="listwrap"><table><thead><tr><th>Name</th><th>Status</th><th>Source</th><th>Code</th></tr></thead><tbody id="list"></tbody></table></div>
+    </section>
+    <section class="panel" id="detail"><div class="empty">Select an item to review it.</div></section>
+  </div>
+</main>
+<div id="toast"></div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const chip = s => `<span class="chip s-${esc(s)}">${esc(String(s).replace('_', ' '))}</span>`;
+let data = null, sel = null, kind = '', statusFilter = '';
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : ''; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', err ? 8000 : 4000);
+}
+
+/* tiny Markdown renderer for the knowledge files (headings, lists, tables, quotes, code, bold, italic) */
+function inline(s) {
+  return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+}
+function md(text) {
+  const lines = String(text || '').split('\n'), out = [];
+  let list = null, para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; } };
+  const endList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    let m;
+    if (!ln.trim()) { flush(); endList(); continue; }
+    if ((m = ln.match(/^(#{1,3})\s+(.*)/))) { flush(); endList(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
+    if (ln.startsWith('>')) {
+      flush(); endList();
+      const q = [];
+      while (i < lines.length && lines[i].startsWith('>')) q.push(lines[i++].replace(/^>\s?/, ''));
+      i--; out.push(`<blockquote>${inline(q.join(' '))}</blockquote>`); continue;
+    }
+    if (ln.trim().startsWith('|')) {
+      flush(); endList();
+      const rows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(lines[i++].trim());
+      i--;
+      const cells = r => r.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      const body = rows.filter(r => !/^\|[\s:|-]+\|$/.test(r));
+      out.push('<table>' + body.map((r, k) => `<tr>${cells(r).map(c => k === 0 ? `<th>${inline(c)}</th>` : `<td>${inline(c)}</td>`).join('')}</tr>`).join('') + '</table>');
+      continue;
+    }
+    if ((m = ln.match(/^\s*([-*]|\d+\.)\s+(.*)/))) {
+      flush();
+      const t = /\d/.test(m[1]) ? 'ol' : 'ul';
+      if (list !== t) { endList(); out.push(`<${t}>`); list = t; }
+      out.push(`<li>${inline(m[2])}</li>`); continue;
+    }
+    if (list && /^\s{2,}\S/.test(ln)) { out[out.length - 1] = out[out.length - 1].replace(/<\/li>$/, ' ' + inline(ln.trim()) + '</li>'); continue; }
+    endList(); para.push(ln.trim());
+  }
+  flush(); endList();
+  return out.join('');
+}
+
+function sourceText(it) {
+  const s = it.sources || [];
+  if (s.length) {
+    const pages = [...new Set(s.map(x => x.page))].join(', ');
+    const bad = s.some(x => !x.check.ok);
+    return `${esc(s[0].document)} p. ${esc(pages)}${bad ? ' <span class="warnmark" title="a quote could not be verified">!</span>' : ''}`;
+  }
+  return it.origin === 'existing-code' ? '<span class="tag">existing code</span>' : '<span class="tag">-</span>';
+}
+
+function renderGate() {
+  const g = data.gate;
+  $('gate').innerHTML = `
+    <div class="${g.patterns.length ? 'on' : 'off'}"><small>Patterns the live signal may use</small>
+      <b>${g.patterns.length}</b> ${g.patterns.length ? '<span class="small">' + esc(g.patterns.join(', ')) + '</span>' : '<span class="small muted">none yet: approve patterns below</span>'}</div>
+    <div class="${g.rule ? 'on' : 'off'}"><small>Trend + pattern rule (makes CALL / PUT)</small>${chip(g.rule_status || 'missing')}
+      <span class="small ${g.rule ? '' : 'muted'}">${g.rule ? 'in use' : 'not in use: the live signal says WAIT'}</span></div>
+    <div class="${g.model ? 'on' : 'off'}"><small>Self-learning model</small>${chip(g.model_status || 'missing')}
+      <span class="small ${g.model ? '' : 'muted'}">${g.model ? 'may take over after passing its own test' : 'may not give signals'}</span></div>`;
+}
+
+function renderDocs() {
+  const docs = data.documents;
+  if (!docs.length) { $('docs').innerHTML = '<div class="empty">No documents yet. Upload a trading book above.</div>'; return; }
+  $('docs').innerHTML = docs.map(d => {
+    const r = d.report;
+    if (!r) return `<div class="doc"><b>${esc(d.name)}</b> <span class="muted small">not read yet</span>
+      <button data-read="${esc(d.name)}" class="primary" style="margin-left:8px">Read</button></div>`;
+    const done = r.sections.filter(s => s.covered).length;
+    return `<div class="doc"><b>${esc(r.title)}</b> <span class="muted small">${esc(d.name)} &middot; ${r.page_count} pages &middot; read ${esc(r.extracted_on)}
+      &middot; ${done} of ${r.sections.length} sections extracted</span>
+      <button data-read="${esc(d.name)}" style="margin-left:8px">Read again</button>
+      <div class="sec">${r.sections.map(s => `<span>${esc(s.heading)} <span class="muted">p. ${s.page_start}${s.page_end !== s.page_start ? '-' + s.page_end : ''}</span></span>
+        <span>${s.knowledge.length ? s.knowledge.map(k => `<a href="#" data-open="${esc(k.kind)}/${esc(k.id)}" style="color:inherit">${chip(k.status)}</a>`).join(' ')
+          : s.skipped ? `<span class="muted" title="${esc(s.skipped)}">skipped (not trading knowledge)</span>` : '<span class="warnmark">not extracted yet</span>'}</span>`).join('')}</div>
+      ${r.mentions.length ? `<div class="small muted" style="margin-top:6px">Mentions: ${r.mentions.map(m => `${esc(m.name)} (p. ${m.pages.join(', ')})`).join(', ')}</div>` : ''}
+      ${r.ask_claude ? `<div class="ask"><b>Next step:</b> ask Claude Code: <code>${esc(r.ask_claude)}</code> <button data-copy="${esc(r.ask_claude)}">Copy</button></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filtered() {
+  const q = $('q').value.trim().toLowerCase();
+  return data.items.filter(it => (!kind || it.kind === kind) && (!statusFilter || it.status === statusFilter)
+    && (!q || it.name.toLowerCase().includes(q)));
+}
+
+function renderList() {
+  const base = data.items.filter(it => !kind || it.kind === kind);
+  const n = s => base.filter(it => it.status === s).length;
+  $('counts').innerHTML = `<button data-s="" class="${statusFilter ? '' : 'on'}">All ${base.length}</button>` +
+    data.statuses.filter(s => n(s)).map(s => `<button data-s="${s}" class="${statusFilter === s ? 'on' : ''}">${chip(s)} ${n(s)}</button>`).join('');
+  const rows = filtered();
+  $('count').textContent = `(${data.items.length} items)`;
+  $('list').innerHTML = rows.map(it => `<tr class="row${sel === it.kind + '/' + it.id ? ' sel' : ''}" data-open="${esc(it.kind)}/${esc(it.id)}">
+    <td><b>${esc(it.name)}</b><br><span class="tag">${esc(it.kind)}${it.category ? ' &middot; ' + esc(it.category) : ''}</span>
+      ${it.decision_needed ? ' <span class="warnmark" title="decision needed">decision needed</span>' : ''}
+      ${it.problems.length ? ' <span class="warnmark" title="' + esc(it.problems.join('; ')) + '">!</span>' : ''}</td>
+    <td>${chip(it.status)}</td><td class="small">${sourceText(it)}</td>
+    <td class="small">${it.implemented_in ? '<span class="pos">yes</span>' : '<span class="muted">no</span>'}</td></tr>`).join('')
+    || '<tr><td colspan="4" class="muted">Nothing matches.</td></tr>';
+}
+
+function btTable(bt) {
+  if (!bt) return '';
+  const pct = v => v == null ? '-' : v + '%';
+  const run = r => {
+    if (r.pattern) {
+      const row = (lbl, p) => `<tr><td>${lbl}</td><td>${p.candles}</td><td>${p.found}</td><td>${pct(p.hit_pct)}</td><td>${pct(p.baseline_pct)}</td>
+        <td class="${(p.edge_pct || 0) > 0 ? 'pos' : (p.edge_pct || 0) < 0 ? 'neg' : ''}">${p.edge_pct == null ? '-' : (p.edge_pct > 0 ? '+' : '') + p.edge_pct + '%'}</td></tr>`;
+      return `<b>${esc(r.market)}</b> <span class="muted">(${esc(r.from)} to ${esc(r.to)}, moved ${esc(r.direction)} after ${r.horizon} candles)</span>
+        <table><tr><th></th><th>candles</th><th>cases</th><th>worked</th><th>any candle</th><th>edge</th></tr>
+        ${row('development', r.development)}${row('out-of-sample', r.out_of_sample)}</table>`;
+    }
+    const row = (lbl, p) => `<tr><td>${lbl}</td><td>${p.trades}</td><td>${p.win_rate == null ? '-' : Math.round(p.win_rate * 100) + '%'}</td>
+      <td class="${(p.avg_r || 0) > 0 ? 'pos' : (p.avg_r || 0) < 0 ? 'neg' : ''}">${p.avg_r == null ? '-' : p.avg_r + 'R'}</td><td>${p.total_r}R</td></tr>`;
+    return `<b>${esc(r.market)}</b> <span class="muted">(${esc(r.from)} to ${esc(r.to)})</span>
+      <table><tr><th></th><th>trades</th><th>wins</th><th>avg</th><th>total</th></tr>${row('development', r.development)}${row('out-of-sample', r.out_of_sample)}</table>`;
+  };
+  return `<div class="bt"><b>Backtest ${esc(bt.date)}</b> <span class="muted">daily candles, ${esc(bt.split)}, costs ${esc(bt.costs)}</span>
+    ${bt.runs.map(run).join('')}
+    <div class="muted" style="margin-top:4px">A historical hit rate alone does not prove a pattern is useful: compare it with "any candle" and
+      look at the out-of-sample part.</div></div>`;
+}
+
+const ACTIONS = {
+  APPROVED: ['Approve', 'ok'], REJECTED: ['Reject', 'no'], PENDING_REVIEW: ['Back to review', ''],
+  IMPLEMENTED: ['Mark implemented', 'ok'], EXTRACTED: ['Back to extracted', ''],
+};
+
+function renderDetail() {
+  const it = sel && data.items.find(x => x.kind + '/' + x.id === sel);
+  if (!it) { $('detail').innerHTML = '<div class="empty">Select an item to review it.</div>'; return; }
+  const btns = it.next.map(s => ACTIONS[s] ? `<button class="${ACTIONS[s][1]}" data-status="${s}">${ACTIONS[s][0]}</button>` : '').join('');
+  const hist = (it.history || []).slice().reverse();
+  $('detail').innerHTML = `
+    <div class="actions">${chip(it.status)} ${btns}
+      ${it.can_backtest ? '<button data-backtest>Run backtest (NIFTY 50 + BANK NIFTY daily)</button>' : ''}
+      ${it.next.length ? '<input id="note" placeholder="Review note (optional, saved in the file)">' : ''}</div>
+    ${it.decision_needed ? `<div class="decision"><b>Decision needed before approving:</b> ${esc(it.decision_needed)}
+      <div class="small muted">Write your choice in the review note. Approving without code that follows the approved rule keeps it
+      out of the live signal until Claude implements it.</div></div>` : ''}
+    ${it.problems.length ? `<div class="problems"><b>Problems:</b><br>${it.problems.map(esc).join('<br>')}</div>` : ''}
+    ${btTable(it.backtest)}
+    ${(it.sources || []).length ? `<h3 style="margin:14px 14px 4px;font-size:13px">Sources</h3><ul class="src">${it.sources.map(s => `<li>
+      <span class="${s.check.ok ? 'ok' : 'bad'}" title="${esc(s.check.reason)}">${s.check.ok ? '&#10003; verified' : '&#10007; ' + esc(s.check.reason)}</span>
+      ${esc(s.ref)}<br><span class="muted">&ldquo;${esc(s.quote)}&rdquo;</span></li>`).join('')}</ul>` : ''}
+    <div class="md">${md(it.body)}</div>
+    <details><summary>File, code and history</summary>
+      <div style="margin:6px 0">File: <code>${esc(it.path)}</code>${it.implemented_in ? `<br>Code: <code>${esc(it.implemented_in)}</code>` : ''}
+        ${it.tests ? `<br>Tests: <code>${esc(it.tests)}</code>` : ''}${it.code_name ? `<br>Detector name: <code>${esc(it.code_name)}</code>` : ''}</div>
+      <ul>${hist.map(h => `<li>${esc(h.date)} ${chip(h.status)} <span class="muted">by ${esc(h.by || '?')}</span> ${esc(h.note || '')}</li>`).join('')}</ul>
+    </details><div style="height:14px"></div>`;
+}
+
+function render() { renderGate(); renderDocs(); renderList(); renderDetail(); }
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error) throw new Error(d.error || r.statusText);
+  return d;
+}
+async function load() {
+  try { data = await api('/api/knowledge'); render(); } catch (e) { toast('Could not load: ' + e.message, true); }
+}
+function open(key) { sel = key; renderList(); renderDetail(); if (innerWidth < 1000) $('detail').scrollIntoView({ behavior: 'smooth' }); }
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-open],[data-status],[data-backtest],[data-read],[data-copy],#kinds button,#counts button');
+  if (!t) return;
+  if (t.dataset.open) { e.preventDefault(); open(t.dataset.open); return; }
+  if (t.closest('#kinds')) { kind = t.dataset.k; statusFilter = ''; document.querySelectorAll('#kinds button').forEach(b => b.classList.toggle('on', b === t)); renderList(); return; }
+  if (t.closest('#counts')) { statusFilter = t.dataset.s; renderList(); return; }
+  if (t.dataset.copy) { try { await navigator.clipboard.writeText(t.dataset.copy); toast('Copied. Paste it to Claude Code.'); } catch (_) { toast('Select the text and copy it.', true); } return; }
+  const it = sel && data.items.find(x => x.kind + '/' + x.id === sel);
+  try {
+    if (t.dataset.status) {
+      const note = ($('note') || {}).value || '';
+      if (t.dataset.status === 'APPROVED' && it.decision_needed && !note.trim()) { toast('Write your decision in the review note first.', true); $('note').focus(); return; }
+      t.disabled = true;
+      const d = await api(`/api/knowledge/${it.kind}/${it.id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: t.dataset.status, note }) });
+      toast(`${d.item.name}: ${d.item.status.replace('_', ' ')}`);
+      await load();
+    } else if ('backtest' in t.dataset) {
+      t.disabled = true; t.textContent = 'Running backtest (downloads daily history)...';
+      const d = await api(`/api/knowledge/${it.kind}/${it.id}/backtest`, { method: 'POST' });
+      toast(`${d.item.name}: backtested`);
+      await load();
+    } else if (t.dataset.read) {
+      t.disabled = true; t.textContent = 'Reading...';
+      await api('/api/documents/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: t.dataset.read }) });
+      toast('Document read.'); await load();
+    }
+  } catch (err) { toast(err.message, true); t.disabled = false; renderDetail(); renderDocs(); }
+});
+$('q').addEventListener('input', renderList);
+$('upload').onclick = async () => {
+  const f = $('file').files[0];
+  if (!f) { toast('Choose a file first.', true); return; }
+  const fd = new FormData(); fd.append('file', f);
+  $('upload').disabled = true; $('upload').textContent = 'Uploading...';
+  try {
+    const d = await api('/api/documents/upload', { method: 'POST', body: fd });
+    toast(`${d.name} uploaded and read.`); $('file').value = ''; await load();
+  } catch (e) { toast(e.message, true); }
+  $('upload').disabled = false; $('upload').textContent = 'Upload & read';
+};
+load();
+</script>
+</body>
+</html>

@@ -5,8 +5,8 @@
   "1m",
   5
  ],
- "processed": 1793727000,
- "saved_at": 1793727060.4206316,
+ "processed": 1793873700,
+ "saved_at": 1793873773.5365362,
  "log": [
   {
    "version": 1,
@@ -154,33 +154,124 @@
    "trained_at": 1793725675.1586921,
    "lessons": 4792,
    "seconds": 0.33
+  },
+  {
+   "version": 22,
+   "cutoff": 1793729640,
+   "trained_at": 1793852003.4959595,
+   "lessons": 5003,
+   "seconds": 0.24
+  },
+  {
+   "version": 23,
+   "cutoff": 1793741640,
+   "trained_at": 1793852003.7734604,
+   "lessons": 5190,
+   "seconds": 0.27
+  },
+  {
+   "version": 24,
+   "cutoff": 1793753640,
+   "trained_at": 1793852004.0038228,
+   "lessons": 5396,
+   "seconds": 0.23
+  },
+  {
+   "version": 25,
+   "cutoff": 1793765640,
+   "trained_at": 1793852004.245181,
+   "lessons": 5603,
+   "seconds": 0.24
+  },
+  {
+   "version": 26,
+   "cutoff": 1793777640,
+   "trained_at": 1793852004.501493,
+   "lessons": 5799,
+   "seconds": 0.25
+  },
+  {
+   "version": 27,
+   "cutoff": 1793789640,
+   "trained_at": 1793852004.704834,
+   "lessons": 5988,
+   "seconds": 0.2
+  },
+  {
+   "version": 28,
+   "cutoff": 1793801640,
+   "trained_at": 1793852004.9114687,
+   "lessons": 6198,
+   "seconds": 0.2
+  },
+  {
+   "version": 29,
+   "cutoff": 1793813640,
+   "trained_at": 1793852005.1206706,
+   "lessons": 6394,
+   "seconds": 0.2
+  },
+  {
+   "version": 30,
+   "cutoff": 1793825640,
+   "trained_at": 1793852005.3319833,
+   "lessons": 6597,
+   "seconds": 0.21
+  },
+  {
+   "version": 31,
+   "cutoff": 1793837640,
+   "trained_at": 1793852005.706106,
+   "lessons": 6801,
+   "seconds": 0.37
+  },
+  {
+   "version": 32,
+   "cutoff": 1793849640,
+   "trained_at": 1793852005.9211164,
+   "lessons": 6994,
+   "seconds": 0.21
+  },
+  {
+   "version": 33,
+   "cutoff": 1793861640,
+   "trained_at": 1793873772.602958,
+   "lessons": 7199,
+   "seconds": 0.38
+  },
+  {
+   "version": 34,
+   "cutoff": 1793873640,
+   "trained_at": 1793873773.018906,
+   "lessons": 7398,
+   "seconds": 0.41
   }
  ],
  "summary": {
   "phase": "ready",
-  "candles": 5023,
-  "unseen_candles": 4156,
+  "candles": 7468,
+  "unseen_candles": 6601,
   "since": 1793477700,
-  "lessons": 4949,
+  "lessons": 7398,
   "lessons_needed": 800,
-  "version": 21,
-  "trained_at": 1793725675.1586921,
-  "trained_lessons": 4792,
-  "next_retrain_in": 44,
+  "version": 34,
+  "trained_at": 1793873773.018906,
+  "trained_lessons": 7398,
+  "next_retrain_in": 199,
   "record": {
    "model": {
-    "trades": 544,
+    "trades": 828,
     "win_rate": 0.38,
-    "total_r": 51.8,
-    "avg_r": 0.095,
-    "se_r": 0.06
+    "total_r": 72.8,
+    "avg_r": 0.088,
+    "se_r": 0.049
    },
    "rule": {
-    "trades": 165,
-    "win_rate": 0.37,
-    "total_r": 9.2,
-    "avg_r": 0.056,
-    "se_r": 0.109
+    "trades": 277,
+    "win_rate": 0.38,
+    "total_r": 19.2,
+    "avg_r": 0.069,
+    "se_r": 0.084
    }
   },
   "gate": {
@@ -189,60 +280,60 @@
    "enough": true,
    "beyond_luck": false,
    "beats_rule": true,
-   "lower": -0.025,
+   "lower": -0.01,
    "promoted": false
   },
   "importance": [
    {
-    "name": "Pattern score",
-    "pct": 13.5
-   },
-   {
     "name": "Trend (EMA20 vs EMA50)",
-    "pct": 12.7
-   },
-   {
-    "name": "Place in the 20-candle range",
-    "pct": 10.9
+    "pct": 16.9
    },
    {
     "name": "Volatility vs usual",
-    "pct": 9.7
+    "pct": 12.5
    },
    {
-    "name": "RSI",
+    "name": "Pattern score",
+    "pct": 12.3
+   },
+   {
+    "name": "Place in the 20-candle range",
     "pct": 8.2
    },
    {
+    "name": "RSI",
+    "pct": 7.7
+   },
+   {
     "name": "Move over 20 candles",
-    "pct": 7.4
+    "pct": 7.5
    }
   ],
   "history": [
    {
-    "version": 21,
-    "trained_at": 1793725675.1586921,
-    "lessons": 4792
+    "version": 34,
+    "trained_at": 1793873773.018906,
+    "lessons": 7398
    },
    {
-    "version": 20,
-    "trained_at": 1793725674.82395,
-    "lessons": 4594
+    "version": 33,
+    "trained_at": 1793873772.602958,
+    "lessons": 7199
    },
    {
-    "version": 19,
-    "trained_at": 1793725674.6058109,
-    "lessons": 4402
+    "version": 32,
+    "trained_at": 1793852005.9211164,
+    "lessons": 6994
    },
    {
-    "version": 18,
-    "trained_at": 1793725674.40219,
-    "lessons": 4189
+    "version": 31,
+    "trained_at": 1793852005.706106,
+    "lessons": 6801
    },
    {
-    "version": 17,
-    "trained_at": 1793725674.1952088,
-    "lessons": 3993
+    "version": 30,
+    "trained_at": 1793852005.3319833,
+    "lessons": 6597
    }
   ]
  }

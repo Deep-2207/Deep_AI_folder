@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Radar - Top Gainers, Losers & 52-Week Lows</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-hover: #1c232d; --line: #262d38;
+    --text: #e6edf3; --muted: #8b95a3; --up: #26a69a; --down: #ef5350;
+    --accent: #4c8dff; --warn: #f0b429; --gold: #ffd700;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  header h1 span { color: var(--accent); }
+  .spacer { flex: 1; }
+  .navlink { color: var(--muted); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; transition: all .15s ease; }
+  .navlink:hover, .navlink.active { color: var(--text); border-color: var(--accent); background: rgba(76,141,255,.12); }
+  .mkt { font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .mkt i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .mkt.open i { background: var(--up); box-shadow: 0 0 6px var(--up); }
+  .mkt.open b { color: var(--up); }
+
+  /* Toolbar */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  select, input, button { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font: inherit; outline: none; }
+  select:focus, input:focus { border-color: var(--accent); }
+  button { cursor: pointer; transition: background .15s; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { opacity: .9; }
+  .btn2 { background: var(--bg); color: var(--text); border: 1px solid var(--line); font-size: 12px; padding: 6px 10px; }
+  .btn2:hover { border-color: var(--accent); }
+  .btn-filter { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
+  .btn-filter.active { background: rgba(76,141,255,.2); border-color: var(--accent); color: var(--text); font-weight: 600; }
+  .btn-filter.green.active { background: rgba(38,166,154,.2); border-color: var(--up); color: var(--up); }
+  .btn-filter.red.active { background: rgba(239,83,80,.2); border-color: var(--down); color: var(--down); }
+  .btn-filter.gold.active { background: rgba(255,215,0,.15); border-color: var(--gold); color: var(--gold); }
+
+  /* Summary Cards */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; padding: 14px 18px 6px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; position: relative; overflow: hidden; }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--line); }
+  .card.gainer::before { background: var(--up); }
+  .card.loser::before { background: var(--down); }
+  .card.lowest::before { background: var(--gold); }
+  .card.breadth::before { background: var(--accent); }
+  .card .tag { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .card .sym-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .card .sym { font-size: 18px; font-weight: 800; }
+  .card .cname { font-size: 12px; color: var(--muted); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .stat { font-size: 22px; font-weight: 800; }
+  .card .stat.up { color: var(--up); }
+  .card .stat.down { color: var(--down); }
+  .card .stat.gold { color: var(--gold); }
+  .card .extra { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; }
+
+  /* Table Section */
+  .content { padding: 10px 18px 24px; }
+  .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+  th { padding: 10px 12px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--line); background: rgba(0,0,0,.15); cursor: pointer; user-select: none; }
+  th:hover { color: var(--text); }
+  th.sort-active { color: var(--accent); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  tr:hover td { background: var(--panel-hover); }
+  .chip { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; display: inline-block; white-space: nowrap; }
+  .chip.up { color: var(--up); background: rgba(38,166,154,.15); }
+  .chip.down { color: var(--down); background: rgba(239,83,80,.15); }
+  .badge-low { background: rgba(255,215,0,.15); color: var(--gold); border: 1px solid rgba(255,215,0,.3); font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+  /* 52W Range Bar */
+  .range-bar { position: relative; width: 130px; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .range-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, var(--gold), var(--up)); }
+  .range-pin { position: absolute; top: -3px; width: 4px; height: 12px; background: #fff; border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 4px #000; }
+
+  .actions { display: inline-flex; gap: 6px; }
+  .btn-act { padding: 3px 8px; font-size: 11px; border-radius: 4px; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--bg); }
+  .btn-act:hover { border-color: var(--accent); color: #fff; background: rgba(76,141,255,.15); }
+
+  #err { display: none; margin: 12px 18px 0; padding: 10px 14px; background: rgba(239,83,80,.12); border: 1px solid var(--down); border-radius: 6px; color: var(--down); font-size: 13px; }
+  .loader { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+  .meta-sub { color: var(--muted); font-size: 11px; display: block; }
+  @media (max-width: 900px) {
+    header, .toolbar, .content { padding: 10px 12px; }
+    .cards-grid { padding: 10px 12px; grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>📈</span> Market Radar &amp; Stock Screener</h1>
+  <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
+  <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
+  <span class="spacer"></span>
+  <a class="navlink" href="/">Live Scanner</a>
+  <a class="navlink active" href="/market">Market Radar</a>
+  <a class="navlink" href="/test">Test Lab</a>
+  <a class="navlink" href="/backtest">Backtest</a>
+  <a class="navlink" href="/knowledge">Knowledge</a>
+</header>
+
+<div class="toolbar">
+  <label style="color:var(--muted); font-size:12px">Universe:
+    <select id="universe-select">
+      <option value="nifty50" selected>NIFTY 50 Bluechips</option>
+      <option value="nse_banking">NSE Banks &amp; Financials</option>
+      <option value="nse_it">NSE IT &amp; Tech</option>
+      <option value="nse_auto">NSE Auto &amp; Metals</option>
+      <option value="us_megacap">US Mega Caps &amp; Tech</option>
+      <option value="us_growth">US High Beta &amp; Growth</option>
+      <option value="custom">Custom Watchlist...</option>
+    </select>
+  </label>
+
+  <div id="custom-wrap" style="display:none; align-items:center; gap:6px;">
+    <input type="text" id="custom-input" placeholder="e.g. RELIANCE, TCS, AAPL" style="width:200px">
+    <button id="custom-apply" class="btn2">Apply</button>
+  </div>
+
+  <div style="display:inline-flex; gap:6px; flex-wrap:wrap">
+    <button class="btn-filter active" data-filter="all">All (<span id="cnt-all">0</span>)</button>
+    <button class="btn-filter green" data-filter="gainers">🔥 Top Gainers (<span id="cnt-gainers">0</span>)</button>
+    <button class="btn-filter red" data-filter="losers">📉 Top Losers (<span id="cnt-losers">0</span>)</button>
+    <button class="btn-filter gold" data-filter="lowest">💎 Near 52W Low (<span id="cnt-lowest">0</span>)</button>
+  </div>
+
+  <label style="color:var(--muted); font-size:12px; margin-left:auto">52W Low Proximity:
+    <select id="prox-filter">
+      <option value="all">All Ranges</option>
+      <option value="5">&lt; 5% from 52W Low</option>
+      <option value="10">&lt; 10% from 52W Low</option>
+      <option value="15">&lt; 15% from 52W Low</option>
+      <option value="25">&lt; 25% from 52W Low</option>
+      <option value="bottom30">Bottom 30% of 52W Range</option>
+    </select>
+  </label>
+
+  <input type="search" id="search-input" placeholder="🔍 Search stock..." style="width:140px">
+
+  <label style="color:var(--muted); font-size:12px">Auto-refresh:
+    <select id="refresh-rate">
+      <option value="0">Off</option>
+      <option value="15000">15s</option>
+      <option value="30000" selected>30s</option>
+      <option value="60000">60s</option>
+    </select>
+  </label>
+  <button id="btn-refresh" class="btn2" title="Force refresh quotes now">↻ Refresh</button>
+</div>
+
+<div id="err"></div>
+
+<div class="cards-grid">
+  <!-- Card 1: Top Gainer -->
+  <div class="card gainer" id="card-gainer">
+    <div class="tag">🚀 Today's Best Stock (Top Gainer)</div>
+    <div class="sym-row">
+      <span class="sym" id="g-sym">-</span>
+      <span class="stat up" id="g-pct">+0.00%</span>
+    </div>
+    <div class="cname" id="g-name">-</div>
+    <div class="extra">
+      <span>Price: <b id="g-price">-</b></span>
+      <span>Range: <span id="g-range">-</span></span>
+    </div>
+  </div>
+
+  <!-- Card 2: Top Loser -->
+  <div class="card loser" id="card-loser">
+    <div class="tag">🔻 Top Loser Stock (Today's Drop)</div>
+    <div class="sym-row">
+      <span class="sym" id="l-sym">-</span>
+      <span class="stat down" id="l-pct">-0.00%</span>
+    </div>
+    <div class="cname" id="l-name">-</div>
+    <div class="extra">
+      <span>Price: <b id="l-price">-</b></span>
+      <span>Range: <span id="l-range">-</span></span>
+    </div>
+  </div>
+
+  <!-- Card 3: Big Stock at Lowest -->
+  <div class="card lowest" id="card-lowest">
+    <div class="tag">💎 Big Stock Near 52-Week Low</div>
+    <div class="sym-row">
+      <span class="sym" id="low-sym">-</span>
+      <span class="stat gold" id="low-dist">+0.0%</span>
+    </div>
+    <div class="cname" id="low-name">-</div>
+    <div class="extra">
+      <span>Price: <b id="low-price">-</b></span>
+      <span>52W Low: <span id="low-52w">-</span></span>
+    </div>
+  </div>
+
+  <!-- Card 4: Market Breadth -->
+  <div class="card breadth">
+    <div class="tag">📊 Market Breadth</div>
+    <div class="sym-row">
+      <span class="sym" id="b-ratio">- : -</span>
+      <span class="stat" id="b-status" style="font-size:16px">-</span>
+    </div>
+    <div class="cname" id="b-universe">NIFTY 50 Bluechips</div>
+    <div class="extra">
+      <span>Advancing: <b id="b-up" style="color:var(--up)">0</b> | Declining: <b id="b-down" style="color:var(--down)">0</b></span>
+      <span id="b-time">Just now</span>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="symbol">Symbol &amp; Company</th>
+          <th data-sort="price" style="text-align:right">Price</th>
+          <th data-sort="change_pct" style="text-align:right">Today Change</th>
+          <th data-sort="range_day" style="text-align:right">Day Low / High</th>
+          <th data-sort="range_52w_pos_pct" style="text-align:center">52W Position</th>
+          <th data-sort="dist_52w_low_pct" style="text-align:right">From 52W Low</th>
+          <th data-sort="fifty_two_week_high" style="text-align:right">52W High</th>
+          <th data-sort="volume" style="text-align:right">Volume</th>
+          <th style="text-align:center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="9" class="loader">Loading market data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  let rawData = null;
+  let activeFilter = 'all';
+  let sortCol = 'change_pct';
+  let sortAsc = false;
+  let refreshTimer = null;
+
+  const el = {
+    uSelect: document.getElementById('universe-select'),
+    customWrap: document.getElementById('custom-wrap'),
+    customInput: document.getElementById('custom-input'),
+    customApply: document.getElementById('custom-apply'),
+    proxFilter: document.getElementById('prox-filter'),
+    searchInput: document.getElementById('search-input'),
+    refreshRate: document.getElementById('refresh-rate'),
+    btnRefresh: document.getElementById('btn-refresh'),
+    tbody: document.getElementById('table-body'),
+    err: document.getElementById('err'),
+    filterBtns: document.querySelectorAll('.btn-filter'),
+    mktNse: document.getElementById('mkt-nse'),
+    mktUs: document.getElementById('mkt-us'),
+  };
+
+  function updateMarketStatus() {
+    fetch('/api/markets').then(r => r.json()).then(m => {
+      if (m.nse) {
+        el.mktNse.classList.toggle('open', m.nse.open);
+        el.mktNse.querySelector('b').textContent = m.nse.open ? 'OPEN' : 'CLOSED';
+        el.mktNse.querySelector('small').textContent = `${m.nse.next} ${m.nse.next_ist}`;
+      }
+      if (m.us) {
+        el.mktUs.classList.toggle('open', m.us.open);
+        el.mktUs.querySelector('b').textContent = m.us.open ? 'OPEN' : 'CLOSED';
+        el.mktUs.querySelector('small').textContent = `${m.us.next} ${m.us.next_ist}`;
+      }
+    }).catch(() => {});
+  }
+
+  function fmtVol(v) {
+    if (!v) return '-';
+    if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr';
+    if (v >= 1e5) return (v / 1e5).toFixed(1) + ' L';
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + ' M';
+    if (v >= 1e3) return (v / 1e3).toFixed(1) + ' K';
+    return v.toLocaleString();
+  }
+
+  function fmtNum(n, curr) {
+    if (n === null || n === undefined) return '-';
+    const sym = curr === 'INR' ? '₹' : (curr === 'USD' ? '$' : '');
+    return `${sym}${Number(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  }
+
+  function loadRadar(force = false) {
+    const universe = el.uSelect.value;
+    let url = `/api/market/radar?universe=${encodeURIComponent(universe)}`;
+    if (universe === 'custom') {
+      const syms = el.customInput.value.trim();
+      if (!syms) {
+        el.tbody.innerHTML = `<tr><td colspan="9" class="loader">Please enter custom symbols above and click Apply.</td></tr>`;
+        return;
+      }
+      url += `&symbols=${encodeURIComponent(syms)}`;
+    }
+    if (force) url += `&refresh=1`;
+
+    el.err.style.display = 'none';
+
+    fetch(url)
+      .then(r => {
+        if (!r.ok) return r.json().then(j => { throw new Error(j.error || 'Failed to fetch radar'); });
+        return r.json();
+      })
+      .then(data => {
+        rawData = data;
+        renderHighlights(data);
+        renderTable();
+      })
+      .catch(e => {
+        el.err.textContent = `Error: ${e.message}`;
+        el.err.style.display = 'block';
+      });
+  }
+
+  function renderHighlights(d) {
+    document.getElementById('b-universe').textContent = d.universe_name || 'Market Watch';
+    document.getElementById('b-time').textContent = new Date(d.updated * 1000).toLocaleTimeString();
+
+    // Counts
+    const total = d.rows.length;
+    const gainers = d.gainers || [];
+    const losers = d.losers || [];
+    const nearLow = (d.rows || []).filter(r => r.dist_52w_low_pct !== null && r.dist_52w_low_pct <= 15);
+
+    document.getElementById('cnt-all').textContent = total;
+    document.getElementById('cnt-gainers').textContent = gainers.length;
+    document.getElementById('cnt-losers').textContent = losers.length;
+    document.getElementById('cnt-lowest').textContent = nearLow.length;
+
+    // Market Breadth
+    document.getElementById('b-up').textContent = gainers.length;
+    document.getElementById('b-down').textContent = losers.length;
+    document.getElementById('b-ratio').textContent = `${gainers.length} : ${losers.length}`;
+    const bStatus = document.getElementById('b-status');
+    if (gainers.length > losers.length * 1.5) {
+      bStatus.textContent = 'Bullish Breath';
+      bStatus.style.color = 'var(--up)';
+    } else if (losers.length > gainers.length * 1.5) {
+      bStatus.textContent = 'Bearish Breath';
+      bStatus.style.color = 'var(--down)';
+    } else {
+      bStatus.textContent = 'Mixed Breath';
+      bStatus.style.color = 'var(--warn)';
+    }
+
+    // Top Gainer
+    if (gainers.length > 0) {
+      const g = gainers[0];
+      document.getElementById('g-sym').textContent = g.symbol;
+      document.getElementById('g-pct').textContent = `+${g.change_pct}%`;
+      document.getElementById('g-name').textContent = g.name || g.symbol;
+      document.getElementById('g-price').textContent = fmtNum(g.price, g.currency);
+      document.getElementById('g-range').textContent = `${fmtNum(g.day_low, g.currency)} - ${fmtNum(g.day_high, g.currency)}`;
+    } else {
+      document.getElementById('g-sym').textContent = '-';
+      document.getElementById('g-pct').textContent = '0.00%';
+      document.getElementById('g-name').textContent = 'No gainers right now';
+    }
+
+    // Top Loser
+    if (losers.length > 0) {
+      const l = losers[0];
+      document.getElementById('l-sym').textContent = l.symbol;
+      document.getElementById('l-pct').textContent = `${l.change_pct}%`;
+      document.getElementById('l-name').textContent = l.name || l.symbol;
+      document.getElementById('l-price').textContent = fmtNum(l.price, l.currency);
+      document.getElementById('l-range').textContent = `${fmtNum(l.day_low, l.currency)} - ${fmtNum(l.day_high, g => l.currency)}`;
+    } else {
+      document.getElementById('l-sym').textContent = '-';
+      document.getElementById('l-pct').textContent = '0.00%';
+      document.getElementById('l-name').textContent = 'No losers right now';
+    }
+
+    // Lowest Bluechip
+    if (d.lowest && d.lowest.length > 0) {
+      const low = d.lowest[0];
+      document.getElementById('low-sym').textContent = low.symbol;
+      document.getElementById('low-dist').textContent = `+${low.dist_52w_low_pct}% above low`;
+      document.getElementById('low-name').textContent = low.name || low.symbol;
+      document.getElementById('low-price').textContent = fmtNum(low.price, low.currency);
+      document.getElementById('low-52w').textContent = fmtNum(low.fifty_two_week_low, low.currency);
+    }
+  }
+
+  function renderTable() {
+    if (!rawData || !rawData.rows) return;
+    let list = [...rawData.rows];
+
+    // 1. Quick Filter Tab
+    if (activeFilter === 'gainers') {
+      list = list.filter(r => r.change_pct > 0);
+    } else if (activeFilter === 'losers') {
+      list = list.filter(r => r.change_pct < 0);
+    } else if (activeFilter === 'lowest') {
+      list = list.filter(r => r.dist_52w_low_pct !== null && r.dist_52w_low_pct <= 15);
+    }
+
+    // 2. Proximity Filter
+    const prox = el.proxFilter.value;
+    if (prox !== 'all') {
+      if (prox === 'bottom30') {
+        list = list.filter(r => r.range_52w_pos_pct !== null && r.range_52w_pos_pct <= 30);
+      } else {
+        const threshold = parseFloat(prox);
+        list = list.filter(r => r.dist_52w_low_pct !== null && r.dist_52w_low_pct <= threshold);
+      }
+    }
+
+    // 3. Search Filter
+    const query = el.searchInput.value.trim().toLowerCase();
+    if (query) {
+      list = list.filter(r => r.symbol.toLowerCase().includes(query) || (r.name && r.name.toLowerCase().includes(query)));
+    }
+
+    // 4. Sorting
+    list.sort((a, b) => {
+      let va = a[sortCol];
+      let vb = b[sortCol];
+      if (va === null || va === undefined) return 1;
+      if (vb === null || vb === undefined) return -1;
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va - vb : vb - va;
+    });
+
+    if (list.length === 0) {
+      el.tbody.innerHTML = `<tr><td colspan="9" class="loader">No stocks match your filter criteria.</td></tr>`;
+      return;
+    }
+
+    const rowsHtml = list.map(r => {
+      const isUp = r.change_pct >= 0;
+      const chgClass = isUp ? 'up' : 'down';
+      const sign = isUp ? '+' : '';
+      const posPct = r.range_52w_pos_pct !== null ? Math.max(0, Math.min(100, r.range_52w_pos_pct)) : 50;
+      
+      const isNearLow = r.dist_52w_low_pct !== null && r.dist_52w_low_pct <= 10;
+      const lowBadge = isNearLow ? `<span class="badge-low" title="Trading within 10% of 52-week low">🔥 At Low</span>` : '';
+      
+      const prov = r.market === 'nse' ? 'nse' : 'yahoo';
+      const liveLink = `/?provider=${prov}&symbol=${encodeURIComponent(r.symbol)}`;
+      const btLink = `/backtest?provider=${prov}&symbol=${encodeURIComponent(r.symbol)}`;
+
+      return `
+        <tr>
+          <td>
+            <b>${r.symbol}</b> ${lowBadge}
+            <span class="meta-sub">${r.name || ''}</span>
+          </td>
+          <td style="text-align:right; font-weight:700">${fmtNum(r.price, r.currency)}</td>
+          <td style="text-align:right">
+            <span class="chip ${chgClass}">${sign}${r.change_pct}%</span>
+            <span class="meta-sub">${sign}${fmtNum(r.change, '')}</span>
+          </td>
+          <td style="text-align:right">
+            <span>${fmtNum(r.day_low, '')} - ${fmtNum(r.day_high, '')}</span>
+          </td>
+          <td style="text-align:center">
+            <div class="range-bar" title="52W Range: Low ${fmtNum(r.fifty_two_week_low, '')} to High ${fmtNum(r.fifty_two_week_high, '')}">
+              <div class="range-fill" style="width:${posPct}%"></div>
+              <div class="range-pin" style="left:${posPct}%"></div>
+            </div>
+            <span class="meta-sub">${posPct}% of range</span>
+          </td>
+          <td style="text-align:right">
+            <span style="font-weight:600; color:${r.dist_52w_low_pct <= 10 ? 'var(--gold)' : 'inherit'}">
+              ${r.dist_52w_low_pct !== null ? `+${r.dist_52w_low_pct}%` : '-'}
+            </span>
+            <span class="meta-sub">Low: ${fmtNum(r.fifty_two_week_low, r.currency)}</span>
+          </td>
+          <td style="text-align:right">
+            <span>${fmtNum(r.fifty_two_week_high, r.currency)}</span>
+            <span class="meta-sub" style="color:var(--down)">${r.dist_52w_high_pct !== null ? `${r.dist_52w_high_pct}%` : ''}</span>
+          </td>
+          <td style="text-align:right">${fmtVol(r.volume)}</td>
+          <td style="text-align:center">
+            <div class="actions">
+              <a href="${liveLink}" class="btn-act" title="Open live candlestick chart">📊 Chart</a>
+              <a href="${btLink}" class="btn-act" title="Test patterns on this stock">🔬 Backtest</a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    el.tbody.innerHTML = rowsHtml;
+  }
+
+  // Event Listeners
+  el.uSelect.addEventListener('change', () => {
+    el.customWrap.style.display = el.uSelect.value === 'custom' ? 'inline-flex' : 'none';
+    if (el.uSelect.value !== 'custom') loadRadar();
+  });
+
+  el.customApply.addEventListener('click', () => loadRadar());
+  el.customInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRadar(); });
+
+  el.filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderTable();
+    });
+  });
+
+  el.proxFilter.addEventListener('change', () => renderTable());
+  el.searchInput.addEventListener('input', () => renderTable());
+
+  el.btnRefresh.addEventListener('click', () => loadRadar(true));
+
+  el.refreshRate.addEventListener('change', () => {
+    if (refreshTimer) clearInterval(refreshTimer);
+    const ms = parseInt(el.refreshRate.value, 10);
+    if (ms > 0) refreshTimer = setInterval(() => loadRadar(false), ms);
+  });
+
+  // Table header sorting
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = col === 'symbol' || col === 'dist_52w_low_pct';
+      }
+      document.querySelectorAll('th[data-sort]').forEach(t => t.classList.remove('sort-active'));
+      th.classList.add('sort-active');
+      renderTable();
+    });
+  });
+
+  // Init
+  updateMarketStatus();
+  loadRadar();
+  const initRate = parseInt(el.refreshRate.value, 10);
+  if (initRate > 0) refreshTimer = setInterval(() => loadRadar(false), initRate);
+})();
+</script>
+
+</body>
+</html>

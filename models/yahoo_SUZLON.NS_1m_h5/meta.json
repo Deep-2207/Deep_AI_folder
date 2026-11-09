@@ -1,0 +1,165 @@
+{
+ "chart": [
+  "yahoo",
+  "SUZLON.NS",
+  "1m",
+  5
+ ],
+ "processed": 1793782320,
+ "saved_at": 1793782399.115206,
+ "log": [
+  {
+   "version": 1,
+   "cutoff": 1793254620,
+   "trained_at": 1793782395.9001505,
+   "lessons": 809,
+   "seconds": 0.34
+  },
+  {
+   "version": 2,
+   "cutoff": 1793266620,
+   "trained_at": 1793782396.2303164,
+   "lessons": 1006,
+   "seconds": 0.32
+  },
+  {
+   "version": 3,
+   "cutoff": 1793343300,
+   "trained_at": 1793782396.6449463,
+   "lessons": 1200,
+   "seconds": 0.36
+  },
+  {
+   "version": 4,
+   "cutoff": 1793592780,
+   "trained_at": 1793782397.0192058,
+   "lessons": 1389,
+   "seconds": 0.37
+  },
+  {
+   "version": 5,
+   "cutoff": 1793604780,
+   "trained_at": 1793782397.306207,
+   "lessons": 1599,
+   "seconds": 0.28
+  },
+  {
+   "version": 6,
+   "cutoff": 1793681460,
+   "trained_at": 1793782397.63736,
+   "lessons": 1800,
+   "seconds": 0.32
+  },
+  {
+   "version": 7,
+   "cutoff": 1793693460,
+   "trained_at": 1793782398.0131161,
+   "lessons": 1997,
+   "seconds": 0.37
+  },
+  {
+   "version": 8,
+   "cutoff": 1793770140,
+   "trained_at": 1793782398.3639464,
+   "lessons": 2186,
+   "seconds": 0.34
+  },
+  {
+   "version": 9,
+   "cutoff": 1793782140,
+   "trained_at": 1793782398.7725742,
+   "lessons": 2394,
+   "seconds": 0.4
+  }
+ ],
+ "summary": {
+  "phase": "ready",
+  "candles": 2479,
+  "unseen_candles": 1603,
+  "since": 1793254680,
+  "lessons": 2394,
+  "lessons_needed": 800,
+  "version": 9,
+  "trained_at": 1793782398.7725742,
+  "trained_lessons": 2394,
+  "next_retrain_in": 197,
+  "record": {
+   "model": {
+    "trades": 151,
+    "win_rate": 0.39,
+    "total_r": 6.5,
+    "avg_r": 0.043,
+    "se_r": 0.106
+   },
+   "rule": {
+    "trades": 95,
+    "win_rate": 0.41,
+    "total_r": 22.1,
+    "avg_r": 0.233,
+    "se_r": 0.136
+   }
+  },
+  "gate": {
+   "trades_needed": 100,
+   "z": 2.0,
+   "enough": true,
+   "beyond_luck": false,
+   "beats_rule": false,
+   "lower": -0.169,
+   "promoted": false
+  },
+  "importance": [
+   {
+    "name": "Trend (EMA20 vs EMA50)",
+    "pct": 19.9
+   },
+   {
+    "name": "Time of day",
+    "pct": 18.8
+   },
+   {
+    "name": "Pattern score",
+    "pct": 11.5
+   },
+   {
+    "name": "Volatility vs usual",
+    "pct": 9.1
+   },
+   {
+    "name": "RSI",
+    "pct": 6.6
+   },
+   {
+    "name": "Move over 20 candles",
+    "pct": 4.8
+   }
+  ],
+  "history": [
+   {
+    "version": 9,
+    "trained_at": 1793782398.7725742,
+    "lessons": 2394
+   },
+   {
+    "version": 8,
+    "trained_at": 1793782398.3639464,
+    "lessons": 2186
+   },
+   {
+    "version": 7,
+    "trained_at": 1793782398.0131161,
+    "lessons": 1997
+   },
+   {
+    "version": 6,
+    "trained_at": 1793782397.63736,
+    "lessons": 1800
+   },
+   {
+    "version": 5,
+    "trained_at": 1793782397.306207,
+    "lessons": 1599
+   }
+  ]
+ }
+}

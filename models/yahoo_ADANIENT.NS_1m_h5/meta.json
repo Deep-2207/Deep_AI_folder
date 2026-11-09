@@ -1,0 +1,151 @@
+{
+ "chart": [
+  "yahoo",
+  "ADANIENT.NS",
+  "1m",
+  5
+ ],
+ "processed": 1793766840,
+ "saved_at": 1793766910.871979,
+ "log": [
+  {
+   "version": 1,
+   "cutoff": 1793255040,
+   "trained_at": 1793766604.9484186,
+   "lessons": 803,
+   "seconds": 0.2
+  },
+  {
+   "version": 2,
+   "cutoff": 1793267040,
+   "trained_at": 1793766605.1867087,
+   "lessons": 1016,
+   "seconds": 0.23
+  },
+  {
+   "version": 3,
+   "cutoff": 1793343720,
+   "trained_at": 1793766605.4204361,
+   "lessons": 1211,
+   "seconds": 0.23
+  },
+  {
+   "version": 4,
+   "cutoff": 1793593200,
+   "trained_at": 1793766605.673119,
+   "lessons": 1409,
+   "seconds": 0.25
+  },
+  {
+   "version": 5,
+   "cutoff": 1793605200,
+   "trained_at": 1793766605.9316993,
+   "lessons": 1611,
+   "seconds": 0.25
+  },
+  {
+   "version": 6,
+   "cutoff": 1793681880,
+   "trained_at": 1793766606.1977093,
+   "lessons": 1807,
+   "seconds": 0.26
+  },
+  {
+   "version": 7,
+   "cutoff": 1793693880,
+   "trained_at": 1793766606.4178398,
+   "lessons": 2013,
+   "seconds": 0.21
+  }
+ ],
+ "summary": {
+  "phase": "ready",
+  "candles": 2222,
+  "unseen_candles": 1338,
+  "since": 1793255100,
+  "lessons": 2140,
+  "lessons_needed": 800,
+  "version": 7,
+  "trained_at": 1793766606.4178398,
+  "trained_lessons": 2013,
+  "next_retrain_in": 62,
+  "record": {
+   "model": {
+    "trades": 132,
+    "win_rate": 0.39,
+    "total_r": 6.9,
+    "avg_r": 0.052,
+    "se_r": 0.116
+   },
+   "rule": {
+    "trades": 83,
+    "win_rate": 0.37,
+    "total_r": 3.9,
+    "avg_r": 0.046,
+    "se_r": 0.151
+   }
+  },
+  "gate": {
+   "trades_needed": 100,
+   "z": 2.0,
+   "enough": true,
+   "beyond_luck": false,
+   "beats_rule": true,
+   "lower": -0.18,
+   "promoted": false
+  },
+  "importance": [
+   {
+    "name": "Time of day",
+    "pct": 24.7
+   },
+   {
+    "name": "Trend (EMA20 vs EMA50)",
+    "pct": 11.7
+   },
+   {
+    "name": "Volatility vs usual",
+    "pct": 11.7
+   },
+   {
+    "name": "RSI",
+    "pct": 7.8
+   },
+   {
+    "name": "Place in the 20-candle range",
+    "pct": 7.8
+   },
+   {
+    "name": "Move over 20 candles",
+    "pct": 7.3
+   }
+  ],
+  "history": [
+   {
+    "version": 7,
+    "trained_at": 1793766606.4178398,
+    "lessons": 2013
+   },
+   {
+    "version": 6,
+    "trained_at": 1793766606.1977093,
+    "lessons": 1807
+   },
+   {
+    "version": 5,
+    "trained_at": 1793766605.9316993,
+    "lessons": 1611
+   },
+   {
+    "version": 4,
+    "trained_at": 1793766605.673119,
+    "lessons": 1409
+   },
+   {
+    "version": 3,
+    "trained_at": 1793766605.4204361,
+    "lessons": 1211
+   }
+  ]
+ }
+}

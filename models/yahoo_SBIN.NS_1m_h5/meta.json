@@ -5,8 +5,8 @@
   "1m",
   5
  ],
- "processed": 1793699940,
- "saved_at": 1793725107.533245,
+ "processed": 1794218280,
+ "saved_at": 1794235708.5322855,
  "log": [
   {
    "version": 1,
@@ -70,33 +70,96 @@
    "trained_at": 1793725107.2845087,
    "lessons": 2391,
    "seconds": 0.31
+  },
+  {
+   "version": 10,
+   "cutoff": 1793772780,
+   "trained_at": 1793781383.1700888,
+   "lessons": 2589,
+   "seconds": 0.27
+  },
+  {
+   "version": 11,
+   "cutoff": 1793784780,
+   "trained_at": 1793849570.9700606,
+   "lessons": 2787,
+   "seconds": 0.24
+  },
+  {
+   "version": 12,
+   "cutoff": 1793861400,
+   "trained_at": 1793873811.6522725,
+   "lessons": 2988,
+   "seconds": 0.25
+  },
+  {
+   "version": 13,
+   "cutoff": 1793938080,
+   "trained_at": 1794228853.4327977,
+   "lessons": 3185,
+   "seconds": 0.21
+  },
+  {
+   "version": 14,
+   "cutoff": 1793950080,
+   "trained_at": 1794228853.6509938,
+   "lessons": 3390,
+   "seconds": 0.21
+  },
+  {
+   "version": 15,
+   "cutoff": 1794199560,
+   "trained_at": 1794228853.8313234,
+   "lessons": 3586,
+   "seconds": 0.18
+  },
+  {
+   "version": 16,
+   "cutoff": 1794211560,
+   "trained_at": 1794228854.0596979,
+   "lessons": 3780,
+   "seconds": 0.22
+  },
+  {
+   "version": 17,
+   "cutoff": 1794218280,
+   "trained_at": 1794235707.0951302,
+   "lessons": 3897,
+   "seconds": 0.26
+  },
+  {
+   "version": 18,
+   "cutoff": 1794218280,
+   "trained_at": 1794235708.2262542,
+   "lessons": 3897,
+   "seconds": 0.29
   }
  ],
  "summary": {
   "phase": "ready",
-  "candles": 2531,
-  "unseen_candles": 1651,
+  "candles": 3979,
+  "unseen_candles": 3099,
   "since": 1793168520,
-  "lessons": 2457,
+  "lessons": 3897,
   "lessons_needed": 800,
-  "version": 9,
-  "trained_at": 1793725107.2845087,
-  "trained_lessons": 2391,
-  "next_retrain_in": 149,
+  "version": 18,
+  "trained_at": 1794235708.2262542,
+  "trained_lessons": 3897,
+  "next_retrain_in": 200,
   "record": {
    "model": {
-    "trades": 150,
-    "win_rate": 0.43,
-    "total_r": 21.1,
-    "avg_r": 0.141,
-    "se_r": 0.106
+    "trades": 284,
+    "win_rate": 0.42,
+    "total_r": 41.3,
+    "avg_r": 0.145,
+    "se_r": 0.078
    },
    "rule": {
-    "trades": 55,
+    "trades": 98,
     "win_rate": 0.35,
-    "total_r": -1.7,
-    "avg_r": -0.031,
-    "se_r": 0.166
+    "total_r": -6.4,
+    "avg_r": -0.065,
+    "se_r": 0.123
    }
   },
   "gate": {
@@ -105,60 +168,60 @@
    "enough": true,
    "beyond_luck": false,
    "beats_rule": true,
-   "lower": -0.071,
+   "lower": -0.011,
    "promoted": false
   },
   "importance": [
    {
-    "name": "Time of day",
-    "pct": 15.1
-   },
-   {
     "name": "Trend (EMA20 vs EMA50)",
-    "pct": 14.0
+    "pct": 20.4
    },
    {
-    "name": "Place in the 20-candle range",
-    "pct": 11.1
-   },
-   {
-    "name": "Move over 20 candles",
-    "pct": 10.2
-   },
-   {
-    "name": "Pattern score",
-    "pct": 7.8
+    "name": "Time of day",
+    "pct": 20.4
    },
    {
     "name": "Volatility vs usual",
-    "pct": 7.1
+    "pct": 9.3
+   },
+   {
+    "name": "Move over 20 candles",
+    "pct": 9.1
+   },
+   {
+    "name": "RSI",
+    "pct": 8.5
+   },
+   {
+    "name": "Pattern score",
+    "pct": 7.6
    }
   ],
   "history": [
    {
-    "version": 9,
-    "trained_at": 1793725107.2845087,
-    "lessons": 2391
+    "version": 18,
+    "trained_at": 1794235708.2262542,
+    "lessons": 3897
    },
    {
-    "version": 8,
-    "trained_at": 1793725106.968179,
-    "lessons": 2193
+    "version": 17,
+    "trained_at": 1794235707.0951302,
+    "lessons": 3897
    },
    {
-    "version": 7,
-    "trained_at": 1793725106.64841,
-    "lessons": 2002
+    "version": 16,
+    "trained_at": 1794228854.0596979,
+    "lessons": 3780
    },
    {
-    "version": 6,
-    "trained_at": 1793725106.3953114,
-    "lessons": 1805
+    "version": 15,
+    "trained_at": 1794228853.8313234,
+    "lessons": 3586
    },
    {
-    "version": 5,
-    "trained_at": 1793725106.189433,
-    "lessons": 1605
+    "version": 14,
+    "trained_at": 1794228853.6509938,
+    "lessons": 3390
    }
   ]
  }

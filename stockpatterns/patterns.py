@@ -20,6 +20,17 @@ import pandas as pd
 TREND_LOOKBACK = 5
 PIVOT_K = 3
 
+# Every name detect() can return. Each one has a knowledge file (knowledge/ or documents/extracted_knowledge/)
+# whose `code_name` is this name; the live signal only uses the ones whose file is IMPLEMENTED or BACKTESTED.
+PATTERN_NAMES = (
+    "Doji", "Dragonfly Doji", "Gravestone Doji", "Bullish Marubozu", "Bearish Marubozu",
+    "Hammer", "Hanging Man", "Inverted Hammer", "Shooting Star",
+    "Bullish Engulfing", "Bearish Engulfing", "Bullish Harami", "Bearish Harami",
+    "Piercing Line", "Dark Cloud Cover", "Tweezer Bottom", "Tweezer Top",
+    "Morning Star", "Evening Star", "Three White Soldiers", "Three Black Crows",
+    "Double Top", "Double Bottom",
+)
+
 
 def _score(base: float, aligned: bool, size_ratio: float) -> float:
     return round(min(0.95, base + (0.15 if aligned else 0.0) + 0.1 * min(size_ratio, 2.0) / 2.0), 2)

@@ -124,6 +124,36 @@
   #side h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
   .empty { padding: 16px 14px; color: var(--muted); }
   #err { color: var(--down); padding: 0 16px; min-height: 18px; }
+  /* indicators (static/indicators.js) */
+  .indbtn { margin-left: auto; }
+  #indlegend { position: absolute; top: 6px; left: 8px; z-index: 11; display: grid; gap: 2px; font-size: 12px; max-width: calc(100% - 90px); }
+  .ind-row { display: flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(22,27,34,.75); width: max-content; max-width: 100%; }
+  .ind-row i { width: 10px; height: 2px; flex: none; }
+  .ind-row.off .ind-name, .ind-row.off .ind-val { opacity: .4; }
+  .ind-name { color: var(--text); white-space: nowrap; }
+  .ind-na { color: var(--muted); font-weight: 400; }
+  .ind-btns { display: none; gap: 2px; }
+  .ind-row:hover .ind-btns { display: inline-flex; }
+  .ind-btns button { background: transparent; border: 0; color: var(--muted); padding: 0 4px; font-size: 13px; line-height: 18px; }
+  .ind-btns button:hover { color: var(--text); background: var(--line); }
+  .ind-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px; margin: 2px 0 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); width: max-content; max-width: 100%; }
+  .ind-form label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
+  .ind-form input[type=number] { width: 70px; text-transform: none; padding: 3px 6px; }
+  .ind-form input[type=color] { width: 34px; height: 24px; padding: 0 2px; }
+  .ind-form select { padding: 3px 6px; }
+  .ind-form button { padding: 3px 10px; font-size: 12px; }
+  .ind-modal { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.45); display: grid; place-items: start center; padding: 10vh 16px 16px; }
+  .ind-box { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); overflow: hidden; }
+  .ind-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 17px; }
+  .ind-head button { background: transparent; border: 0; color: var(--muted); font-size: 22px; padding: 0 6px; line-height: 1; }
+  .ind-head button:hover { color: var(--text); }
+  .ind-box input[type=search] { display: block; width: calc(100% - 32px); margin: 12px 16px; text-transform: none; padding: 8px 10px; }
+  .ind-cap { padding: 4px 16px; font-size: 11px; color: var(--muted); letter-spacing: .5px; border-top: 1px solid var(--line); }
+  .ind-list { min-height: 120px; max-height: 50vh; overflow: auto; padding-bottom: 8px; }
+  .ind-item { padding: 8px 16px; cursor: pointer; }
+  .ind-item:hover, .ind-item.sel { background: rgba(76,141,255,.15); }
+  .ind-item mark { background: transparent; color: var(--up); }
+  .ind-none { padding: 12px 16px; color: var(--muted); }
   footer { padding: 0 16px 16px; color: var(--muted); font-size: 12px; }
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } #chartbox { height: 380px; } #side { max-height: none; } }
 </style>
@@ -155,8 +185,10 @@
   <span class="spacer"></span>
   <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
   <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
+  <a class="navlink" href="/market">Market Radar</a>
   <a class="navlink" href="/test">Test Lab</a>
   <a class="navlink" href="/backtest">Backtest</a>
+  <a class="navlink" href="/knowledge">Knowledge</a>
 </header>
 <div id="movers"></div>
 <div id="err"></div>
@@ -166,6 +198,7 @@
       <span class="price" id="price">-</span>
       <span class="muted" id="meta"></span>
       <span class="warn" id="stale"></span>
+      <button id="indbtn" class="btn2 indbtn" title="Add an indicator to the chart (e.g. EMA)"><i>f</i><sub>x</sub> Indicators</button>
     </div>
     <div class="chartwrap">
       <div id="toolbar">
@@ -187,6 +220,7 @@
       <div id="chartbox">
         <div id="chart"></div>
         <canvas id="overlay"></canvas>
+        <div id="indlegend" data-nodraw></div>
       </div>
     </div>
     <div class="hint">On the chart: <b class="UP">&#9650; CALL</b> / <b class="DOWN">&#9660; PUT</b> arrows = where the trade signal entered, &#10003; / &#10007; / &#9201; = how that trade ended (target / stop / time limit or market close), square = latest candlestick pattern.
@@ -207,6 +241,8 @@
 
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="/static/drawings.js"></script>
+<script src="/static/indicators.js"></script>
+<script src="/static/nifty500.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const tz = -new Date().getTimezoneOffset() * 60;           // show candles in local time
@@ -240,6 +276,9 @@ const predLine = mkLine(2, LightweightCharts.LineStyle.Dashed);
 const loLine = mkLine(1, LightweightCharts.LineStyle.Dotted);
 const hiLine = mkLine(1, LightweightCharts.LineStyle.Dotted);
 const lines = [predLine, loLine, hiLine];
+
+// ---- indicators (EMA...), added from the Indicators button above the chart ----
+const ind = createIndicators({ chart, legend: $('indlegend'), button: $('indbtn'), format: v => num(v) });
 
 // ---- drawing tools (CALL/PUT boxes, trend line, ruler...) ----
 const toolButtons = [...document.querySelectorAll('#toolbar [data-tool]')];
@@ -298,6 +337,7 @@ function render(d) {
   const keyChanged = key !== current;
   const range = keyChanged ? null : chart.timeScale().getVisibleLogicalRange();
   series.setData(d.candles.map(c => ({ time: c.time + tz, open: c.open, high: c.high, low: c.low, close: c.close })));
+  ind.setData(d.candles, tz);
   if (keyChanged) {
     chart.timeScale().fitContent();
     current = key; sig = null; tradeMarkers = []; boxKey = '';
@@ -655,8 +695,21 @@ async function showMovers(market) {
   }
 }
 
+const escHtml = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+/* Symbol box suggestions. NSE: the indices, then the usual movers, then all NIFTY 500 stocks (static/nifty500.js),
+   each labelled with the company name, so typing "state bank" or "SBIN" both find it. */
 function fillSuggestions() {
-  $('symlist').innerHTML = (SUGGEST[$('provider').value] || []).map(x => `<option value="${x}">`).join('');
+  const p = $('provider').value, list = $('symbol').list;
+  if (!list) return;
+  let rows = (SUGGEST[p] || []).map(s => [s, '']);
+  if ((p === 'nse' || p === 'nse_replay') && window.NIFTY500) {
+    const name = new Map(window.NIFTY500.map(r => [r[0], `${r[1]} · ${r[2]}`]));
+    const first = [...(window.NSE_INDICES || []).map(r => r[0]), ...(SUGGEST.nse || [])];
+    const seen = new Set();
+    rows = [...first, ...window.NIFTY500.map(r => r[0])].filter(s => !seen.has(s) && seen.add(s))
+      .map(s => [s, name.get(s) || ((window.NSE_INDICES || []).find(r => r[0] === s) || [])[1] || '']);
+  }
+  list.innerHTML = rows.map(([s, label]) => `<option value="${escHtml(s)}">${escHtml(label)}</option>`).join('');
 }
 
 async function load() {

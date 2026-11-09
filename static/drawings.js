@@ -380,6 +380,7 @@
 
     function onDown(e) {
       if (e.button !== 0) return;
+      if (e.target && e.target.closest && e.target.closest('[data-nodraw]')) return;   // e.g. indicator legend
       const p = pointer(e);
       const plot = plotSize();
       if (!p || p.rawX > plot.w - plot.pw || p.rawY > plot.h - plot.th) return;      // axes: let the chart handle it

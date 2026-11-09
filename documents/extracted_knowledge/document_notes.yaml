@@ -1,0 +1,6 @@
+# Per-document notes written during extraction (see CLAUDE.md).
+# skipped_sections: sections that contain no trading knowledge, with the reason. Everything else in a document
+# must be covered by a knowledge file, so the Knowledge page can show what is still left to extract.
+dummy_trading_knowledge_book.pdf:
+  skipped_sections:
+    "8": Instructions for the extractor (which fields each record needs). Followed when writing the files; not trading knowledge.

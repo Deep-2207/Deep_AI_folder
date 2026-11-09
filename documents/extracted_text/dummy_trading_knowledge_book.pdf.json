@@ -1,0 +1,86 @@
+{
+ "document": "dummy_trading_knowledge_book.pdf",
+ "title": "Trading Knowledge Starter Book",
+ "extracted_on": "2026-11-05",
+ "page_count": 5,
+ "sections": [
+  {
+   "number": "1",
+   "title": "Basic market data concepts",
+   "heading": "1. Basic market data concepts",
+   "page_start": 2,
+   "page_end": 2
+  },
+  {
+   "number": "2",
+   "title": "Bullish Engulfing (illustrative concept)",
+   "heading": "2. Bullish Engulfing (illustrative concept)",
+   "page_start": 2,
+   "page_end": 3
+  },
+  {
+   "number": "3",
+   "title": "Bearish Engulfing (illustrative concept)",
+   "heading": "3. Bearish Engulfing (illustrative concept)",
+   "page_start": 3,
+   "page_end": 3
+  },
+  {
+   "number": "4",
+   "title": "Support and resistance (introductory concept)",
+   "heading": "4. Support and resistance (introductory concept)",
+   "page_start": 3,
+   "page_end": 3
+  },
+  {
+   "number": "5",
+   "title": "Volume confirmation (introductory concept)",
+   "heading": "5. Volume confirmation (introductory concept)",
+   "page_start": 3,
+   "page_end": 4
+  },
+  {
+   "number": "6",
+   "title": "Signal outcome tracking",
+   "heading": "6. Signal outcome tracking",
+   "page_start": 4,
+   "page_end": 4
+  },
+  {
+   "number": "7",
+   "title": "Risk and testing notes",
+   "heading": "7. Risk and testing notes",
+   "page_start": 4,
+   "page_end": 4
+  },
+  {
+   "number": "8",
+   "title": "Instructions for Claude's extraction report",
+   "heading": "8. Instructions for Claude's extraction report",
+   "page_start": 4,
+   "page_end": 5
+  }
+ ],
+ "pages": [
+  {
+   "page": 1,
+   "text": "TRADING KNOWLEDGE\nSTARTER BOOK\nDummy sample PDF for testing a Claude-assisted\ntrading knowledge extraction workflow\nTarget market\nNIFTY 50 and BANK NIFTY (examples only)\nIntended use\nDocument reading, concept extraction and rule structuring\nDocument type\nSynthetic educational sample — not a published trading book\nVersion\n1.0\nIMPORTANT: This sample contains simplified, illustrative trading concepts and deliberately incomplete rules. It is\ndesigned to test document ingestion and knowledge extraction—not to provide trading advice or ready-to-use profitable\nstrategies."
+  },
+  {
+   "page": 2,
+   "text": "How to use this sample\nGive this PDF to Claude Code and ask it to extract the concepts into structured Markdown files. The expected\noutput is a knowledge document that preserves definitions, conditions, ambiguities, source references and review\nstatus.\nSuggested extraction fields\n Concept name: the pattern or trading idea.\n Category: candlestick, chart pattern, support/resistance, volume or risk management.\n Market interpretation: what the concept may indicate.\n Identification conditions: observable rules based on OHLCV data.\n Confirmation: what additional evidence may strengthen the setup.\n Invalidation: what would make the setup no longer valid.\n Unknowns: any rule the source does not specify.\n Source reference: document title, chapter and page.\n Status: EXTRACTED or PENDING_REVIEW until a human approves it.\n1. Basic market data concepts\nA price candle summarises trading activity over a selected time interval. For a standard OHLC candle:\n Open: first traded price in the interval.\n High: highest traded price in the interval.\n Low: lowest traded price in the interval.\n Close: last traded price in the interval.\n Volume: quantity traded during the interval, where reliable volume data is available.\nA 5-minute candle represents one five-minute interval. A candle should normally be treated as complete only after\nits interval has ended and the data provider has confirmed the final values.\nA candle pattern is not a guarantee of future price direction. Its usefulness must be tested on historical data and then\nmonitored out of sample.\n2. Bullish Engulfing (illustrative concept)\nCategory: Two-candle candlestick pattern\nPotential interpretation: possible bullish reversal, particularly after a decline.\nSimplified description\nThe first candle has a bearish real body. The following candle has a bullish real body that fully covers the first\ncandle's real body. This description compares candle bodies, not necessarily the full high-low ranges.\nPossible measurable conditions\n Previous candle: Close[1] < Open[1].\n Current candle: Close[0] > Open[0].\n Current real body covers the previous real body: Open[0] <= Close[1] and Close[0] >= Open[1].\n Evaluate only after the current candle is closed."
+  },
+  {
+   "page": 3,
+   "text": "Context and possible confirmation\nThe pattern may be more meaningful after a decline or near a previously identified support area. A volume\nincrease or a later candle closing above the pattern high may be studied as additional confirmation. These are\nhypotheses to test, not mandatory rules established by this sample.\nInvalidation and unresolved choices\nA close or trade below the pattern low may be used as an invalidation rule, but the exact rule (intrabar touch versus\ncandle close) must be chosen and documented. This sample does not prescribe an entry price, stop-loss buffer,\ntarget, or expiry period.\nExtraction note: Claude should preserve the distinction between the basic pattern definition and optional\nconfirmation ideas.\n3. Bearish Engulfing (illustrative concept)\nCategory: Two-candle candlestick pattern\nPotential interpretation: possible bearish reversal, particularly after an advance.\nSimplified description\nThe first candle has a bullish real body. The next candle has a bearish real body that fully covers the first candle's\nreal body.\nPossible measurable conditions\n Previous candle: Close[1] > Open[1].\n Current candle: Close[0] < Open[0].\n Current real body covers previous real body: Open[0] >= Close[1] and Close[0] <= Open[1].\n Evaluate only after the current candle is closed.\nContext and possible confirmation\nAn advance before the pattern, a nearby resistance area, or increased volume may be studied as context. A later\ncandle closing below the pattern low may be evaluated as confirmation.\nUnresolved choices\nThe sample does not define how large the bodies must be, how to measure the preceding trend, or how to set\nentry, stop-loss and target. Those decisions require explicit review and testing.\n4. Support and resistance (introductory concept)\nSupport: a price area where declines have previously paused or where buying interest may emerge.\nResistance: a price area where advances have previously paused or where selling interest may emerge.\nThese are better treated as zones than perfectly precise prices. A program needs a documented method to identify\nthem—for example, swing highs/lows within a specified lookback window, a tolerance around prices, and a rule for\nmerging nearby levels.\nThis sample does not define the lookback period, tolerance, minimum number of touches or breakout confirmation.\nClaude must flag these as missing parameters rather than inventing values.\n5. Volume confirmation (introductory concept)\nVolume can provide context about participation during a price move. A simple research feature is the ratio of the\ncurrent completed candle's volume to the average volume of a defined number of prior completed candles."
+  },
+  {
+   "page": 4,
+   "text": "Example formula: volume_ratio = current_volume / average(previous_N_volumes)\nThe value of N and any threshold are not specified here. The strategy developer must choose them for an\nexperiment, record the choice, and test whether the filter improves results without overfitting.\n6. Signal outcome tracking\nFor an observation-only system, each generated signal should be stored with its timestamp, instrument, timeframe,\npattern, direction, reference entry, target, stop-loss and expiry rule.\nSuggested outcomes\n ACTIVE: neither target nor stop-loss has been reached and the signal has not expired.\n TARGET_HIT: target was reached first under the chosen price-evaluation rule.\n STOPLOSS_HIT: stop-loss was reached first under the chosen price-evaluation rule.\n EXPIRED: the configured observation period ended without either level being reached.\n AMBIGUOUS: available candle data cannot establish which level was reached first.\nIf one candle's high and low cross both target and stop-loss, OHLC data alone does not reveal the order. Mark the result\nAMBIGUOUS unless finer-grained data resolves it.\n7. Risk and testing notes\nA pattern's historical win rate alone is not enough to establish usefulness. A backtest should account for\ntransaction costs, slippage, realistic signal timing, data quality and the possibility of repeated or overlapping\nsignals.\nAvoid look-ahead bias: a signal based on a candle must not be generated before that candle is complete. Keep\ndevelopment data separate from out-of-sample evaluation data. Record all parameter choices.\nNo example in this sample is a recommendation to trade. NIFTY 50 and BANK NIFTY are indices; a later\ninstrument mapping step is needed if observing a tradable futures or options contract.\n8. Instructions for Claude's extraction report\nFor every concept found in this PDF, produce a structured record with:\n Concept name and category.\n Plain-language definition.\n Exact source-based conditions.\n Potential interpretation (not a prediction guarantee).\n Confirmation ideas, clearly separated from core definition.\n Invalidation conditions.\n Missing parameters and ambiguities.\n Python implementation requirements.\n Suggested unit-test cases.\n Source document, chapter and page number.\n Knowledge status: PENDING_REVIEW."
+  },
+  {
+   "page": 5,
+   "text": "Claude must not silently fill gaps. If a rule is absent, write 'Not specified in source'. Keep proposed research\nparameters in a separate section labelled 'Experiment proposal'.\nEnd of sample"
+  }
+ ]
+}

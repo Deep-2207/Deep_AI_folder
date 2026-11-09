@@ -168,8 +168,19 @@ class TestLab(unittest.TestCase):
 
 
 class Api(unittest.TestCase):
-    def test_signal_reports_the_model_and_obeys_the_logic_switch(self):
+    def setUp(self):                    # everything approved, so the knowledge gate does not block the logic switch
+        from stockpatterns import knowledge
+        from tests.kb_helpers import make_kb
         import app as web
+        self.real, self.web = knowledge.KB, web
+        knowledge.KB = web.knowledge.KB = make_kb(status="IMPLEMENTED")
+
+    def tearDown(self):
+        from stockpatterns import knowledge
+        knowledge.KB = self.web.knowledge.KB = self.real
+
+    def test_signal_reports_the_model_and_obeys_the_logic_switch(self):
+        web = self.web
         c = web.app.test_client()
         replay.control("seeder", "APITEST", "1m", "pause")
         q = "/api/signal?provider=seeder&symbol=APITEST&interval=1m&horizon=5"

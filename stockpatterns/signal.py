@@ -239,13 +239,16 @@ def _model_wait_reason(model: dict, signal_now: int) -> str:
 
 
 def recommend(closed: pd.DataFrame, patterns: list[dict], current_price: float, horizon: int = 5,
-              live_bar: dict | None = None, model: dict | None = None) -> dict:
+              live_bar: dict | None = None, model: dict | None = None, blocked: str | None = None) -> dict:
     """What to do now. `closed` = closed candles; `live_bar` = the still-forming candle (high/low/close) if any.
     `model` = the self-learning model's paper decisions for `closed` when it is the logic in charge
-    ({"decision", "call_r", "put_r", "edge", "note"}, see learner.py); None = the fixed rule decides."""
+    ({"decision", "call_r", "put_r", "edge", "note"}, see learner.py); None = the fixed rule decides.
+    `blocked` = why the rule may not trade (knowledge gate: strategy not approved); it then always says WAIT."""
     max_hold = horizon * 4
     k = components(closed, patterns, horizon)
     rule_dec = decide(k["pattern"], k["trend"])
+    if blocked:
+        rule_dec = np.zeros_like(rule_dec)
     dec = np.asarray(model["decision"]) if model else rule_dec
     trades, open_t = run_trades(closed, dec, k["atr"], max_hold)
     n = len(closed)
@@ -304,12 +307,15 @@ def recommend(closed: pd.DataFrame, patterns: list[dict], current_price: float, 
         wait_reason = None
     elif model:
         wait_reason = _model_wait_reason(model, signal_now)
+    elif blocked:
+        wait_reason = blocked
     else:
         wait_reason = _wait_reason(tv, pv, signal_now)
     return {
         "state": state,
         "action": trade["side"] if trade else "WAIT",
         "logic": "model" if model else "rule",
+        "blocked": None if model else blocked,
         "trade": trade,
         "last_trade": last_trade,
         "signal_now": SIDE.get(signal_now, "WAIT"),

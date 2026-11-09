@@ -9,7 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
-from .feeds import get_candles
+from .feeds import _session, get_candles
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -112,3 +112,190 @@ def movers(market: str, top: int = 12) -> dict:
     with _lock:
         _cache[market] = (time.time(), res)
     return res
+
+
+UNIVERSES = {
+    "nifty50": {
+        "name": "NIFTY 50 Bluechips",
+        "market": "nse",
+        "symbols": [
+            "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC", "LT",
+            "HINDUNILVR", "ADANIENT", "AXISBANK", "MARUTI", "SUNPHARMA", "BAJFINANCE", "TATAMOTORS",
+            "KOTAKBANK", "M&M", "NTPC", "POWERGRID", "ONGC", "TITAN", "ULTRACEMCO", "COALINDIA",
+            "TATASTEEL", "JSWSTEEL", "ADANIPORTS", "BAJAJFINSV", "ASIANPAINT", "HINDALCO", "TECHM",
+            "WIPRO", "GRASIM", "HEROMOTOCO", "EICHERMOT", "NESTLEIND", "DRREDDY", "CIPLA", "DIVISLAB",
+            "APOLLOHOSP", "SHRIRAMFIN", "TRENT", "BEL", "HAL", "VEDL", "BPCL", "PIDILITIND", "SIEMENS",
+            "ZOMATO", "JIOFIN",
+        ],
+    },
+    "nse_banking": {
+        "name": "NSE Banks & Financials",
+        "market": "nse",
+        "symbols": [
+            "HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "BANKBARODA", "PNB", "CANBK",
+            "INDUSINDBK", "FEDERALBNK", "IDFCFIRSTB", "BAJFINANCE", "BAJAJFINSV", "CHOLAFIN",
+            "SHRIRAMFIN", "MUTHOOTFIN", "JIOFIN",
+        ],
+    },
+    "nse_it": {
+        "name": "NSE IT & Tech",
+        "market": "nse",
+        "symbols": [
+            "TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "PERSISTENT", "COFORGE",
+            "MPHASIS", "OFSS", "TATAELXSI", "LTTS",
+        ],
+    },
+    "nse_auto": {
+        "name": "NSE Auto & Metals",
+        "market": "nse",
+        "symbols": [
+            "TATAMOTORS", "MARUTI", "M&M", "BAJAJ-AUTO", "HEROMOTOCO", "EICHERMOT", "TVSMOTOR",
+            "TATASTEEL", "JSWSTEEL", "HINDALCO", "VEDL", "JINDALSTEL", "NMDC",
+        ],
+    },
+    "us_megacap": {
+        "name": "US Mega Caps & Tech",
+        "market": "us",
+        "symbols": [
+            "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "BRK-B", "LLY", "JPM",
+            "AVGO", "V", "UNH", "WMT", "XOM", "MA", "PG", "COST", "JNJ", "HD",
+            "NFLX", "AMD", "CRM", "ORCL", "BAC",
+        ],
+    },
+    "us_growth": {
+        "name": "US High Beta & Growth",
+        "market": "us",
+        "symbols": [
+            "SOXL", "RIOT", "MARA", "PLTR", "COIN", "AMD", "MSTR", "AFRM", "SOFI", "HOOD",
+            "SMCI", "IONQ", "RGTI", "RIVN", "UBER", "SNOW", "UPST", "TQQQ",
+        ],
+    },
+}
+
+_radar_cache: dict[str, tuple[float, dict]] = {}
+RADAR_TTL = 60
+
+
+def _fetch_quote_meta(sym: str, market: str) -> dict | None:
+    sym = sym.strip().upper()
+    if not sym:
+        return None
+    yahoo_sym = sym + ".NS" if market == "nse" and not sym.endswith(".NS") and not sym.startswith("^") else sym
+    try:
+        r = _session.get(
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_sym}",
+            params={"interval": "1d", "range": "1d"},
+            timeout=8,
+        )
+        if r.status_code != 200:
+            return None
+        data = r.json().get("chart", {}).get("result")
+        if not data:
+            return None
+        meta = data[0].get("meta", {})
+        price = meta.get("regularMarketPrice")
+        if price is None:
+            return None
+        price = float(price)
+        change_pct = meta.get("regularMarketChangePercent")
+        change_pct = round(float(change_pct), 2) if change_pct is not None else 0.0
+        prev_close = meta.get("chartPreviousClose")
+        change_pts = round(price - float(prev_close), 2) if prev_close else round(price * change_pct / 100, 2)
+
+        low_52 = meta.get("fiftyTwoWeekLow")
+        high_52 = meta.get("fiftyTwoWeekHigh")
+        low_52 = float(low_52) if low_52 is not None else None
+        high_52 = float(high_52) if high_52 is not None else None
+
+        dist_52w_low_pct = None
+        if low_52 is not None and low_52 > 0:
+            dist_52w_low_pct = round(((price - low_52) / low_52) * 100, 2)
+
+        dist_52w_high_pct = None
+        if high_52 is not None and high_52 > 0:
+            dist_52w_high_pct = round(((price - high_52) / high_52) * 100, 2)
+
+        range_52w_pos_pct = None
+        if low_52 is not None and high_52 is not None and high_52 > low_52:
+            range_52w_pos_pct = round(max(0.0, min(100.0, ((price - low_52) / (high_52 - low_52)) * 100)), 1)
+
+        name = meta.get("shortName") or meta.get("longName") or sym
+        return {
+            "symbol": sym,
+            "full_symbol": yahoo_sym,
+            "name": name,
+            "market": market,
+            "price": price,
+            "change": change_pts,
+            "change_pct": change_pct,
+            "day_low": float(meta.get("regularMarketDayLow")) if meta.get("regularMarketDayLow") else None,
+            "day_high": float(meta.get("regularMarketDayHigh")) if meta.get("regularMarketDayHigh") else None,
+            "volume": int(meta.get("regularMarketVolume") or 0),
+            "fifty_two_week_low": low_52,
+            "fifty_two_week_high": high_52,
+            "dist_52w_low_pct": dist_52w_low_pct,
+            "dist_52w_high_pct": dist_52w_high_pct,
+            "range_52w_pos_pct": range_52w_pos_pct,
+            "currency": meta.get("currency", "INR" if market == "nse" else "USD"),
+        }
+    except Exception:
+        return None
+
+
+def radar(universe_key: str = "nifty50", custom_symbols: list[str] | None = None, force: bool = False) -> dict:
+    """Returns today's gainers, losers, and stocks near 52-week low for the chosen universe or custom symbols."""
+    is_custom = bool(custom_symbols)
+    if is_custom:
+        symbols = [s.strip().upper() for s in custom_symbols if s.strip()]
+        if not symbols:
+            raise ValueError("custom symbols list cannot be empty")
+        market = "nse" if any(s.endswith(".NS") for s in symbols) else "us"
+        u_name = "Custom Watchlist"
+        cache_key = "custom:" + ",".join(sorted(symbols))
+    else:
+        if universe_key not in UNIVERSES:
+            raise ValueError(f"universe must be one of {sorted(UNIVERSES)}")
+        u_info = UNIVERSES[universe_key]
+        symbols = u_info["symbols"]
+        market = u_info["market"]
+        u_name = u_info["name"]
+        cache_key = universe_key
+
+    with _lock:
+        hit = _radar_cache.get(cache_key)
+        if not force and hit and time.time() - hit[0] < RADAR_TTL:
+            return hit[1]
+
+    with ThreadPoolExecutor(10) as ex:
+        rows = [r for r in ex.map(lambda s: _fetch_quote_meta(s, market), symbols) if r]
+
+    # Categorize and sort
+    gainers = sorted([r for r in rows if r["change_pct"] > 0], key=lambda r: -r["change_pct"])
+    losers = sorted([r for r in rows if r["change_pct"] < 0], key=lambda r: r["change_pct"])
+
+    # Sort by proximity to 52-week low (lowest dist_52w_low_pct first)
+    with_low = [r for r in rows if r["dist_52w_low_pct"] is not None]
+    lowest = sorted(with_low, key=lambda r: r["dist_52w_low_pct"])
+
+    # Sort by proximity to 52-week high
+    with_high = [r for r in rows if r["dist_52w_high_pct"] is not None]
+    highest = sorted(with_high, key=lambda r: -r["dist_52w_high_pct"])
+
+    res = {
+        "universe": universe_key if not is_custom else "custom",
+        "universe_name": u_name,
+        "market": market,
+        "updated": int(time.time()),
+        "status": status()[market] if market in status() else None,
+        "total": len(rows),
+        "rows": rows,
+        "gainers": gainers,
+        "losers": losers,
+        "lowest": lowest,
+        "highest": highest,
+    }
+
+    with _lock:
+        _radar_cache[cache_key] = (time.time(), res)
+    return res
+
