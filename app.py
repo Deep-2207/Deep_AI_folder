@@ -29,7 +29,8 @@ def index():
 @app.get("/test")
 def test_page():
     """Same dashboard in test mode: NSE replay / pattern seeder instead of live feeds."""
-    html = open(app.static_folder + "/index.html", encoding="utf-8").read()
+    with open(app.static_folder + "/index.html", encoding="utf-8") as f:
+        html = f.read()
     html = html.replace('<script src="/static/drawings.js"></script>',
                         '<script src="/static/testmode.js"></script>\n<script src="/static/drawings.js"></script>', 1)
     return Response(html, mimetype="text/html")
@@ -200,6 +201,11 @@ def movers_api():
 @app.get("/market")
 def market_page():
     return send_from_directory("static", "market.html")
+
+
+@app.get("/strategy/ema")
+def ema_strategy_page():
+    return send_from_directory("static", "ema_visualizer.html")
 
 
 @app.get("/api/market/radar")

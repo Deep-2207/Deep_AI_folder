@@ -2,7 +2,46 @@
    Source: NSE, https://archives.nseindia.com/content/indices/ind_nifty500list.csv (downloaded 2026-11-04).
    The index is reshuffled twice a year; to refresh, download that CSV again and regenerate this file.
    Any other NSE symbol still works when typed, it just isn't suggested. */
-window.NSE_INDICES = [['^NSEI', 'NIFTY 50 (index)', 'Index'], ['^NSEBANK', 'BANK NIFTY (index)', 'Index']];
+window.NSE_INDICES = [
+  ['NIFTY', 'NIFTY 50 Index (Benchmark F&O)', 'Index'],
+  ['BANKNIFTY', 'BANK NIFTY Index (High Volatility F&O)', 'Index'],
+  ['FINNIFTY', 'FIN NIFTY Index (Financial Services)', 'Index'],
+  ['^NSEI', 'NIFTY 50 Index (^NSEI)', 'Index'],
+  ['^NSEBANK', 'BANK NIFTY Index (^NSEBANK)', 'Index'],
+];
+
+window.NIFTY50_SYMBOLS = [
+  "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC", "LT",
+  "HINDUNILVR", "ADANIENT", "AXISBANK", "MARUTI", "SUNPHARMA", "BAJFINANCE", "TATAMOTORS",
+  "KOTAKBANK", "M&M", "NTPC", "POWERGRID", "ONGC", "TITAN", "ULTRACEMCO", "COALINDIA",
+  "TATASTEEL", "JSWSTEEL", "ADANIPORTS", "BAJAJFINSV", "ASIANPAINT", "HINDALCO", "TECHM",
+  "WIPRO", "GRASIM", "HEROMOTOCO", "EICHERMOT", "NESTLEIND", "DRREDDY", "CIPLA", "DIVISLAB",
+  "APOLLOHOSP", "SHRIRAMFIN", "TRENT", "BEL", "HAL", "VEDL", "BPCL", "PIDILITIND", "SIEMENS",
+  "ZOMATO", "JIOFIN"
+];
+
+window.FO_TOP_STOCKS = [
+  { s: "NIFTY", l: "NIFTY 50", idx: true },
+  { s: "BANKNIFTY", l: "BANK NIFTY", idx: true },
+  { s: "FINNIFTY", l: "FIN NIFTY", idx: true },
+  { s: "RELIANCE", l: "RELIANCE" },
+  { s: "HDFCBANK", l: "HDFC BANK" },
+  { s: "ICICIBANK", l: "ICICI BANK" },
+  { s: "SBIN", l: "SBIN" },
+  { s: "TATAMOTORS", l: "TATA MOTORS" },
+  { s: "INFY", l: "INFOSYS" },
+  { s: "TCS", l: "TCS" },
+  { s: "BHARTIARTL", l: "AIRTEL" },
+  { s: "ITC", l: "ITC" },
+  { s: "ADANIENT", l: "ADANI ENT" },
+  { s: "BAJFINANCE", l: "BAJAJ FIN" },
+  { s: "AXISBANK", l: "AXIS BANK" },
+  { s: "KOTAKBANK", l: "KOTAK BANK" },
+  { s: "TATASTEEL", l: "TATA STEEL" },
+  { s: "MARUTI", l: "MARUTI" },
+  { s: "LT", l: "L&T" },
+  { s: "WIPRO", l: "WIPRO" },
+];
 window.NIFTY500 = [
   ["360ONE", "360 ONE WAM Ltd.", "Financial Services"],
   ["AADHARHFC", "Aadhar Housing Finance Ltd.", "Financial Services"],

@@ -154,6 +154,38 @@
   .ind-item:hover, .ind-item.sel { background: rgba(76,141,255,.15); }
   .ind-item mark { background: transparent; color: var(--up); }
   .ind-none { padding: 12px 16px; color: var(--muted); }
+  /* EMA Options Strategy */
+  .ema-card { padding: 10px 14px 12px; display: grid; gap: 8px; font-size: 13px; }
+  .ema-ribbon { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ema-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); font-family: ui-monospace, monospace; }
+  .ema-badge i { width: 8px; height: 8px; border-radius: 2px; }
+  .ema-diag { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); font-size: 12px; display: grid; gap: 4px; }
+  .ema-diag-title { font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .ema-diag-sub { color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .ema-trade-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+  .ema-trade-btn { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; cursor: pointer; text-align: left; display: grid; gap: 2px; transition: transform .1s, opacity .2s; }
+  .ema-trade-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .ema-trade-btn:active { transform: translateY(0); }
+  .ema-trade-btn.call { background: rgba(38,166,154,.15); border-color: var(--up); color: var(--text); }
+  .ema-trade-btn.call.recommended { background: rgba(38,166,154,.28); border-width: 2px; box-shadow: 0 0 10px rgba(38,166,154,.25); }
+  .ema-trade-btn.put { background: rgba(239,83,80,.15); border-color: var(--down); color: var(--text); }
+  .ema-trade-btn.put.recommended { background: rgba(239,83,80,.28); border-width: 2px; box-shadow: 0 0 10px rgba(239,83,80,.25); }
+  .ema-trade-btn b { font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .ema-trade-btn small { font-size: 10px; color: var(--muted); }
+  .ema-links { display: flex; justify-content: space-between; align-items: center; font-size: 11px; border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; }
+  .ema-links button { background: transparent; border: 1px solid var(--line); color: var(--accent); padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+  .ema-links button:hover { background: rgba(76,141,255,.15); }
+  .ema-toast { padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-align: center; background: rgba(76,141,255,.2); color: var(--text); border: 1px solid var(--accent); display: none; }
+  /* F&O / NIFTY 50 Quick Bar */
+  .fo-bar { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(22,27,34,.95); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+  .fo-bar::-webkit-scrollbar { display: none; }
+  .fo-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .fo-scroll { display: flex; align-items: center; gap: 6px; }
+  .fo-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; font-size: 11px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); color: var(--text); cursor: pointer; white-space: nowrap; transition: all .15s ease; text-decoration: none; }
+  .fo-chip:hover { border-color: var(--accent); background: rgba(76,141,255,.12); }
+  .fo-chip.active { border-color: var(--up); background: rgba(38,166,154,.2); color: #fff; font-weight: 700; box-shadow: 0 0 8px rgba(38,166,154,.25); }
+  .fo-chip.idx { border-color: rgba(76,141,255,.4); font-weight: 600; }
+  .fo-chip.idx.active { border-color: var(--accent); background: rgba(76,141,255,.25); box-shadow: 0 0 8px rgba(76,141,255,.3); }
   footer { padding: 0 16px 16px; color: var(--muted); font-size: 12px; }
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } #chartbox { height: 380px; } #side { max-height: none; } }
 </style>
@@ -186,10 +218,15 @@
   <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
   <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
   <a class="navlink" href="/market">Market Radar</a>
+  <a class="navlink" href="/strategy/ema" target="_blank" title="EMA Options Strategy Playbook">EMA Playbook</a>
   <a class="navlink" href="/test">Test Lab</a>
   <a class="navlink" href="/backtest">Backtest</a>
   <a class="navlink" href="/knowledge">Knowledge</a>
 </header>
+<div id="fo-bar" class="fo-bar">
+  <div class="fo-label"><span>⚡ F&amp;O Radar:</span></div>
+  <div class="fo-scroll" id="fo-chips"></div>
+</div>
 <div id="movers"></div>
 <div id="err"></div>
 <main>
@@ -229,6 +266,8 @@
   <aside class="panel" id="side">
     <h2>Trade signal <span class="muted" id="sigmeta" style="font-weight:400"></span></h2>
     <div id="sigbody"><div class="empty">Loading signal...</div></div>
+    <h2>EMA Strategy <span class="muted" id="emameta" style="font-weight:400">9 / 21 / 200</span></h2>
+    <div id="emabody"><div class="empty">Calculating EMA strategy...</div></div>
     <h2>Self-learning model <span class="muted" id="mlmeta" style="font-weight:400"></span></h2>
     <div id="mlbody"><div class="empty">Loading...</div></div>
     <h2>Pattern study <span class="muted" style="font-weight:400">(information only, not a trade signal)</span></h2>
@@ -248,10 +287,20 @@ const $ = id => document.getElementById(id);
 const tz = -new Date().getTimezoneOffset() * 60;           // show candles in local time
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const TEST = !!window.TEST_DEFAULT_SYMBOL;                  // /test page (replay) sets this
-const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'SBIN', binance: 'BTCUSDT' };
+const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'NIFTY', binance: 'BTCUSDT' };
+const resolveSymbol = (p, s) => {
+  s = (s || '').trim().toUpperCase();
+  if (p === 'nse' || p === 'nse_replay') {
+    if (s === 'NIFTY' || s === 'NIFTY50' || s === 'NIFTY 50') return '^NSEI';
+    if (s === 'BANKNIFTY' || s === 'BANK NIFTY' || s === 'NIFTYBANK') return '^NSEBANK';
+    if (s === 'FINNIFTY' || s === 'FIN NIFTY') return 'NIFTY_FIN_SERVICE.NS';
+    if (s === 'SENSEX') return '^BSESN';
+  }
+  return s;
+};
 const SUGGEST = {
   yahoo: ['PLTR', 'SOXL', 'COIN', 'AMD', 'RIOT', 'MARA', 'TSLA', 'NVDA', 'SMCI', 'MSTR', 'IONQ', 'UPST', 'HOOD', 'SOFI', 'AAPL', 'META'],
-  nse: ['SBIN', 'MCX', 'ANGELONE', 'DIXON', 'CDSL', 'BSE', 'PAYTM', 'RELIANCE', 'TMPV', 'ADANIENT', 'HDFCBANK', 'ICICIBANK', 'TCS', 'INFY', '^NSEI', '^NSEBANK'],
+  nse: ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'ADANIENT', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'TATASTEEL', 'MARUTI', 'LT', 'WIPRO'],
   binance: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
 };
 const store = {
@@ -343,16 +392,20 @@ function render(d) {
     current = key; sig = null; tradeMarkers = []; boxKey = '';
     $('sigbody').innerHTML = '<div class="empty">Working out the trade signal...</div>';
     $('mlbody').innerHTML = '<div class="empty">Loading the model...</div>'; $('mlmeta').textContent = '';
+    $('emabody').innerHTML = '<div class="empty">Calculating EMA strategy...</div>'; $('emameta').textContent = '';
   } else if (range) chart.timeScale().setVisibleLogicalRange(range);
   shownTimes = new Set(d.candles.map(c => c.time + tz));
 
+  const symLabel = d.symbol === '^NSEI' ? 'NIFTY 50' : d.symbol === '^NSEBANK' ? 'BANK NIFTY' : d.symbol === 'NIFTY_FIN_SERVICE.NS' ? 'FIN NIFTY' : d.symbol;
   $('price').textContent = num(d.last_price);
-  $('meta').textContent = `${d.symbol} ${d.interval} | ${d.history_candles} candles of history | updated ${new Date().toLocaleTimeString()}`;
+  $('meta').textContent = `${symLabel} ${d.interval} | ${d.history_candles} candles of history | updated ${new Date().toLocaleTimeString()}`;
   $('stale').textContent = d.stale ? 'Not live: market closed or feed delayed' : '';
   candleCount = d.candles.length;
   dr.setData(d.candles, d.interval_seconds, `${d.provider}|${d.symbol}`);
   renderPositions();
   renderStudy(d);
+  renderEma(d);
+  renderFoBar();
 
   // the signal only changes when a candle closes: refetch then, otherwise just update live numbers
   const n = d.candles.length;
@@ -401,11 +454,214 @@ function renderStudy(d) {
   $('proj').onchange = e => { projOn = e.target.checked; store.set('show-projection', projOn); renderStudy(scan); applyMarkers(); };
 }
 
+// ---------------- EMA Options Strategy (9/21/200) ----------------
+let lastEmaCalc = null;
+
+function renderEma(d) {
+  const el = $('emabody');
+  if (!el || !d || !d.candles || d.candles.length < 5) {
+    if (el) el.innerHTML = '<div class="empty">Needs more candles to compute EMAs.</div>';
+    return;
+  }
+  const cs = d.candles;
+  const closes = cs.map(c => c.close);
+  const n = closes.length;
+  const lastC = cs[n - 1];
+  const price = lastC.close;
+
+  const e9Series = createIndicators.ema(closes, 9);
+  const e21Series = createIndicators.ema(closes, 21);
+  const e200Series = n >= 200 ? createIndicators.ema(closes, 200) : null;
+
+  const v9 = e9Series[n - 1];
+  const v21 = e21Series[n - 1];
+  const v200 = e200Series ? e200Series[n - 1] : null;
+
+  if (v9 == null || v21 == null) {
+    el.innerHTML = '<div class="empty">Needs at least 21 candles for EMA calculations.</div>';
+    return;
+  }
+
+  // Macro Regime (Price relative to 200 EMA, or 9/21 relationship if <200 bars)
+  const hasMacro = v200 != null;
+  const isBullRegime = hasMacro ? price > v200 : v9 >= v21;
+  const regimeLabel = hasMacro
+    ? (isBullRegime ? 'Bullish (Above 200 EMA)' : 'Bearish (Below 200 EMA)')
+    : (isBullRegime ? 'Bullish (9 > 21 EMA)' : 'Bearish (9 < 21 EMA)');
+
+  const fanBullish = v9 > v21;
+
+  // Value pocket (dynamic support / resistance between 9 & 21 EMA)
+  const pocketHi = Math.max(v9, v21);
+  const pocketLo = Math.min(v9, v21);
+  const inPocket = price >= pocketLo * 0.998 && price <= pocketHi * 1.002;
+
+  // Overextension / Retail Trap (>2.5% distance from 9 EMA)
+  const dist9Pct = ((price - v9) / v9) * 100;
+  const isOverextendedCall = dist9Pct > 2.5;
+  const isOverextendedPut = dist9Pct < -2.5;
+
+  let bias = 'WAIT';
+  let badgeClass = 'muted';
+  let title = 'Trend Neutral';
+  let desc = 'EMAs are consolidating. Wait for pullback into the 9/21 Value Pocket.';
+  let recTrade = null;
+
+  if (isOverextendedCall) {
+    badgeClass = 'warn';
+    title = `⚠️ Retail FOMO Trap (+${dist9Pct.toFixed(1)}%)`;
+    desc = 'Price is extended too far above the 9 EMA. High mean-reversion risk. Do NOT buy Calls here; wait for dip into the 9/21 Value Pocket.';
+  } else if (isOverextendedPut) {
+    badgeClass = 'warn';
+    title = `⚠️ Retail Trap Down (${dist9Pct.toFixed(1)}%)`;
+    desc = 'Price is extended far below the 9 EMA. High short-squeeze risk. Do NOT chase Puts here; wait for relief bounce into the Value Pocket.';
+  } else if (isBullRegime && inPocket) {
+    badgeClass = 'UP';
+    title = '🟢 BUY CALL SETUP (In Value Pocket)';
+    desc = 'Price has pulled back into 9/21 dynamic support. Institutional ambush zone with defined stop beneath the 21 EMA.';
+    recTrade = 'CALL';
+    bias = 'CALL';
+  } else if (!isBullRegime && inPocket) {
+    badgeClass = 'DOWN';
+    title = '🔴 BUY PUT SETUP (In Value Pocket)';
+    desc = 'Price has rallied into 9/21 dynamic resistance. Institutional sell zone with defined stop above the 21 EMA.';
+    recTrade = 'PUT';
+    bias = 'PUT';
+  } else if (isBullRegime && fanBullish) {
+    badgeClass = 'UP';
+    title = '🟢 BULLISH TREND (Call Bias)';
+    desc = `Price riding above 9 EMA (${num(v9)}) and 21 EMA (${num(v21)}). Watch for pullback into Value Pocket to execute Call.`;
+    recTrade = 'CALL';
+    bias = 'CALL';
+  } else {
+    badgeClass = 'DOWN';
+    title = '🔴 BEARISH TREND (Put Bias)';
+    desc = `Price trapped below 9 EMA (${num(v9)}) and 21 EMA (${num(v21)}). Watch for rally into Value Pocket to execute Put.`;
+    recTrade = 'PUT';
+    bias = 'PUT';
+  }
+
+  // Exact trade levels (1:2 R:R, Stop Loss anchored at 21 EMA)
+  const minRisk = Math.max(price * 0.002, 0.05);
+
+  // Call Trade Plan
+  const callStopRaw = Math.min(v21 * 0.998, price - minRisk);
+  const callStop = Number(callStopRaw.toFixed(2));
+  const callRisk = Math.max(price - callStop, minRisk);
+  const callTarget = Number((price + 2 * callRisk).toFixed(2));
+
+  // Put Trade Plan
+  const putStopRaw = Math.max(v21 * 1.002, price + minRisk);
+  const putStop = Number(putStopRaw.toFixed(2));
+  const putRisk = Math.max(putStop - price, minRisk);
+  const putTarget = Number((price - 2 * putRisk).toFixed(2));
+
+  lastEmaCalc = {
+    CALL: { entry: price, stop: callStop, target: callTarget, risk: callRisk, reward: 2 * callRisk },
+    PUT: { entry: price, stop: putStop, target: putTarget, risk: putRisk, reward: 2 * putRisk }
+  };
+
+  $('emameta').textContent = `${d.symbol} · ${bias}`;
+  el.innerHTML = `
+    <div class="ema-card">
+      <div id="ema-toast" class="ema-toast"></div>
+
+      <div class="ema-ribbon">
+        <span class="ema-badge"><i style="background:#06b6d4"></i> 9 EMA: <b>${num(v9)}</b></span>
+        <span class="ema-badge"><i style="background:#f59e0b"></i> 21 EMA: <b>${num(v21)}</b></span>
+        <span class="ema-badge"><i style="background:#64748b"></i> 200 EMA: <b>${v200 != null ? num(v200) : 'n/a'}</b></span>
+      </div>
+
+      <div class="ema-diag">
+        <div class="ema-diag-title">
+          <span>${title}</span>
+          <span class="chip ${badgeClass}">${regimeLabel.split(' ')[0]}</span>
+        </div>
+        <div class="ema-diag-sub">${desc}</div>
+        <div class="muted small" style="margin-top:2px">
+          Zone: <b>${inPocket ? '🎯 9/21 Value Pocket' : (dist9Pct > 0 ? '+' : '') + dist9Pct.toFixed(2) + '% from 9 EMA'}</b> |
+          Macro: <b>${regimeLabel}</b>
+        </div>
+      </div>
+
+      <div class="ema-trade-actions">
+        <button class="ema-trade-btn call${recTrade === 'CALL' ? ' recommended' : ''}" onclick="executeEmaTrade('CALL')" title="Click to execute paper trade with SL at 21 EMA">
+          <b><span>⚡ Trade CALL</span> <span class="UP">+${pts(2 * callRisk)}</span></b>
+          <small>Entry ${num(price)} | SL ${num(callStop)} (21 EMA)</small>
+          <small style="color:var(--up); font-weight:600">Target ${num(callTarget)} (1:2 R:R)</small>
+        </button>
+
+        <button class="ema-trade-btn put${recTrade === 'PUT' ? ' recommended' : ''}" onclick="executeEmaTrade('PUT')" title="Click to execute paper trade with SL at 21 EMA">
+          <b><span>⚡ Trade PUT</span> <span class="DOWN">-${pts(2 * putRisk)}</span></b>
+          <small>Entry ${num(price)} | SL ${num(putStop)} (21 EMA)</small>
+          <small style="color:var(--down); font-weight:600">Target ${num(putTarget)} (1:2 R:R)</small>
+        </button>
+      </div>
+
+      <div class="ema-links">
+        <button onclick="applyEmaRibbon()" title="Plot 9, 21, and 200 EMA lines onto candlestick chart">📈 Apply 9/21/200 EMAs</button>
+        <a href="/strategy/ema" target="_blank" style="color:var(--accent); text-decoration:none" title="Interactive visual guide on how to trade 9/21/200 EMAs">📖 Playbook Guide &rarr;</a>
+      </div>
+    </div>
+  `;
+}
+
+function executeEmaTrade(side) {
+  if (!lastEmaCalc || !scan || !scan.candles || !scan.candles.length) return;
+  const plan = lastEmaCalc[side];
+  if (!plan) return;
+  const lastC = scan.candles[scan.candles.length - 1];
+  const type = side === 'CALL' ? 'long' : 'short';
+  dr.addTrade({
+    type,
+    t0: lastC.time,
+    entry: plan.entry,
+    stop: plan.stop,
+    target: plan.target,
+    w: 20 * scan.interval_seconds,
+    auto: false
+  });
+  renderPositions();
+  const toast = $('ema-toast');
+  if (toast) {
+    toast.style.display = 'block';
+    toast.innerHTML = `&#10003; <b>${side} trade placed on chart!</b> Entry ${num(plan.entry)} | Stop ${num(plan.stop)} | Target ${num(plan.target)}`;
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4500);
+  }
+}
+
+function applyEmaRibbon() {
+  if (!ind) return;
+  const existing = ind.list();
+  const presets = [
+    { length: 9, color: '#06b6d4', width: 2 },
+    { length: 21, color: '#f59e0b', width: 2 },
+    { length: 200, color: '#64748b', width: 2 }
+  ];
+  let addedCount = 0;
+  for (const p of presets) {
+    const found = existing.find(x => x.type === 'ema' && x.length === p.length);
+    if (!found) {
+      ind.add('ema', { length: p.length, color: p.color, width: p.width, source: 'close' });
+      addedCount++;
+    }
+  }
+  const toast = $('ema-toast');
+  if (toast) {
+    toast.style.display = 'block';
+    toast.innerHTML = addedCount > 0
+      ? `&#10003; Added ${addedCount} EMAs (9 Cyan, 21 Amber, 200 Slate) to chart!`
+      : `&#10003; 9, 21, and 200 EMAs already active on chart.`;
+    setTimeout(() => { if (toast) toast.style.display = 'none'; }, 3000);
+  }
+}
+
 // ---------------- trade signal ----------------
 async function fetchSignal(want) {
   if (sigBusy) return;
   sigBusy = true;
-  const q = { provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value, horizon: $('horizon').value, logic: logicMode };
+  const sym = resolveSymbol($('provider').value, $('symbol').value);
+  const q = { provider: $('provider').value, symbol: sym, interval: $('interval').value, horizon: $('horizon').value, logic: logicMode };
   try {
     const r = await fetch('/api/signal?' + new URLSearchParams(q));
     const s = await r.json();
@@ -632,7 +888,8 @@ function renderModel() {
 
 async function modelAction(act) {
   if (act === 'reset' && !confirm('Forget everything the model has learned on this chart?')) return;
-  const q = { provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value, horizon: +$('horizon').value };
+  const sym = resolveSymbol($('provider').value, $('symbol').value);
+  const q = { provider: $('provider').value, symbol: sym, interval: $('interval').value, horizon: +$('horizon').value };
   try {
     await fetch('/api/model/' + act, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
   } catch (e) { /* the card shows the state at the next refresh */ }
@@ -696,7 +953,7 @@ async function showMovers(market) {
 }
 
 const escHtml = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-/* Symbol box suggestions. NSE: the indices, then the usual movers, then all NIFTY 500 stocks (static/nifty500.js),
+/* Symbol box suggestions. NSE: the indices, then NIFTY 50 / F&O stocks, then all NIFTY 500 stocks (static/nifty500.js),
    each labelled with the company name, so typing "state bank" or "SBIN" both find it. */
 function fillSuggestions() {
   const p = $('provider').value, list = $('symbol').list;
@@ -704,17 +961,65 @@ function fillSuggestions() {
   let rows = (SUGGEST[p] || []).map(s => [s, '']);
   if ((p === 'nse' || p === 'nse_replay') && window.NIFTY500) {
     const name = new Map(window.NIFTY500.map(r => [r[0], `${r[1]} · ${r[2]}`]));
-    const first = [...(window.NSE_INDICES || []).map(r => r[0]), ...(SUGGEST.nse || [])];
+    const nifty50Set = new Set(window.NIFTY50_SYMBOLS || []);
+    const indices = (window.NSE_INDICES || []).map(r => [r[0], `${r[1]} · ${r[2]}`]);
+    const n50 = (window.NIFTY50_SYMBOLS || []).map(s => [s, `${name.get(s) || s} · [NIFTY 50 F&O]`]);
+    const others = window.NIFTY500.filter(r => !nifty50Set.has(r[0])).map(r => [r[0], `${r[1]} · ${r[2]}`]);
     const seen = new Set();
-    rows = [...first, ...window.NIFTY500.map(r => r[0])].filter(s => !seen.has(s) && seen.add(s))
-      .map(s => [s, name.get(s) || ((window.NSE_INDICES || []).find(r => r[0] === s) || [])[1] || '']);
+    rows = [...indices, ...n50, ...others].filter(s => !seen.has(s[0]) && seen.add(s[0]));
   }
   list.innerHTML = rows.map(([s, label]) => `<option value="${escHtml(s)}">${escHtml(label)}</option>`).join('');
 }
 
+function renderFoBar() {
+  const el = $('fo-chips');
+  if (!el) return;
+  const presets = window.FO_TOP_STOCKS || [
+    { s: 'NIFTY', l: 'NIFTY 50', idx: true },
+    { s: 'BANKNIFTY', l: 'BANK NIFTY', idx: true },
+    { s: 'FINNIFTY', l: 'FIN NIFTY', idx: true },
+    { s: 'RELIANCE', l: 'RELIANCE' },
+    { s: 'HDFCBANK', l: 'HDFC BANK' },
+    { s: 'ICICIBANK', l: 'ICICI BANK' },
+    { s: 'SBIN', l: 'SBIN' },
+    { s: 'TATAMOTORS', l: 'TATA MOTORS' },
+    { s: 'INFY', l: 'INFOSYS' },
+    { s: 'TCS', l: 'TCS' },
+    { s: 'BHARTIARTL', l: 'AIRTEL' },
+    { s: 'ITC', l: 'ITC' },
+    { s: 'ADANIENT', l: 'ADANI ENT' },
+    { s: 'BAJFINANCE', l: 'BAJAJ FIN' },
+    { s: 'AXISBANK', l: 'AXIS BANK' },
+    { s: 'KOTAKBANK', l: 'KOTAK BANK' },
+    { s: 'TATASTEEL', l: 'TATA STEEL' },
+    { s: 'MARUTI', l: 'MARUTI' },
+    { s: 'LT', l: 'L&T' },
+    { s: 'WIPRO', l: 'WIPRO' },
+  ];
+  const cur = $('symbol').value.trim().toUpperCase();
+  const isNse = $('provider').value === 'nse' || $('provider').value === 'nse_replay';
+
+  el.innerHTML = presets.map(x => {
+    const isThis = cur === x.s || (x.s === 'NIFTY' && (cur === '^NSEI' || cur === 'NIFTY50')) || (x.s === 'BANKNIFTY' && cur === '^NSEBANK');
+    const active = isNse && isThis;
+    return `<button class="fo-chip${x.idx ? ' idx' : ''}${active ? ' active' : ''}" data-s="${x.s}" title="${x.l}"><b>${x.l}</b></button>`;
+  }).join('');
+
+  el.querySelectorAll('.fo-chip').forEach(btn => {
+    btn.onclick = () => {
+      $('provider').value = 'nse';
+      $('symbol').value = btn.dataset.s;
+      fillSuggestions();
+      renderFoBar();
+      restart();
+    };
+  });
+}
+
 async function load() {
+  const sym = resolveSymbol($('provider').value, $('symbol').value);
   const q = new URLSearchParams({
-    provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value,
+    provider: $('provider').value, symbol: sym, interval: $('interval').value,
     horizon: $('horizon').value, limit: 300,
   });
   try {
@@ -730,6 +1035,7 @@ async function load() {
 
 function restart() {
   clearInterval(timer);
+  renderFoBar();
   load();
   timer = setInterval(load, +$('poll').value);
 }
@@ -740,18 +1046,31 @@ $('poll').onchange = restart;
 $('interval').onchange = restart;
 $('horizon').onchange = restart;
 $('symbol').addEventListener('keydown', e => { if (e.key === 'Enter') restart(); });
-$('provider').onchange = () => { $('symbol').value = DEFAULT_SYMBOL[$('provider').value]; fillSuggestions(); restart(); };
+$('provider').onchange = () => { $('symbol').value = DEFAULT_SYMBOL[$('provider').value]; fillSuggestions(); renderFoBar(); restart(); };
 $('moversbtn').onclick = () => ($('movers').classList.contains('show') ? $('movers').classList.remove('show') : showMovers());
 
 (async function init() {
   if (TEST) $('moversbtn').style.display = 'none';
   await refreshMarkets();
-  if (!TEST && mk) {                             // start on a stock market that is open right now
+
+  const params = new URLSearchParams(window.location.search);
+  const pParam = params.get('provider');
+  const sParam = params.get('symbol');
+  const iParam = params.get('interval');
+  const hParam = params.get('horizon');
+
+  if (pParam) $('provider').value = pParam;
+  if (sParam) $('symbol').value = sParam.trim().toUpperCase();
+  if (iParam) $('interval').value = iParam;
+  if (hParam) $('horizon').value = hParam;
+
+  if (!TEST && !sParam && mk) {                             // start on open market only when no symbol specified
     const p = mk.nse.open ? 'nse' : 'yahoo';
     $('provider').value = p;
     $('symbol').value = DEFAULT_SYMBOL[p];
   }
   fillSuggestions();
+  renderFoBar();
   restart();
   setInterval(refreshMarkets, 60000);
 })();

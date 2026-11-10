@@ -5,8 +5,8 @@
   "1m",
   5
  ],
- "processed": 1794235620,
- "saved_at": 1794235683.9679983,
+ "processed": 1794258000,
+ "saved_at": 1794290833.625188,
  "log": [
   {
    "version": 1,
@@ -119,33 +119,47 @@
    "trained_at": 1794228841.7578807,
    "lessons": 3792,
    "seconds": 0.29
+  },
+  {
+   "version": 17,
+   "cutoff": 1794245220,
+   "trained_at": 1794290832.7251406,
+   "lessons": 3998,
+   "seconds": 0.33
+  },
+  {
+   "version": 18,
+   "cutoff": 1794257220,
+   "trained_at": 1794290833.0497868,
+   "lessons": 4201,
+   "seconds": 0.32
   }
  ],
  "summary": {
   "phase": "ready",
-  "candles": 3921,
-  "unseen_candles": 3040,
+  "candles": 4294,
+  "unseen_candles": 3413,
   "since": 1793200260,
-  "lessons": 3840,
+  "lessons": 4216,
   "lessons_needed": 800,
-  "version": 16,
-  "trained_at": 1794228841.7578807,
-  "trained_lessons": 3792,
-  "next_retrain_in": 160,
+  "version": 18,
+  "trained_at": 1794290833.0497868,
+  "trained_lessons": 4201,
+  "next_retrain_in": 187,
   "record": {
    "model": {
-    "trades": 288,
-    "win_rate": 0.4,
-    "total_r": 13.8,
-    "avg_r": 0.048,
-    "se_r": 0.076
+    "trades": 320,
+    "win_rate": 0.42,
+    "total_r": 25.9,
+    "avg_r": 0.081,
+    "se_r": 0.073
    },
    "rule": {
-    "trades": 101,
+    "trades": 121,
     "win_rate": 0.29,
-    "total_r": -21.9,
-    "avg_r": -0.216,
-    "se_r": 0.122
+    "total_r": -26.0,
+    "avg_r": -0.215,
+    "se_r": 0.111
    }
   },
   "gate": {
@@ -154,36 +168,46 @@
    "enough": true,
    "beyond_luck": false,
    "beats_rule": true,
-   "lower": -0.104,
+   "lower": -0.065,
    "promoted": false
   },
   "importance": [
    {
     "name": "Time of day",
-    "pct": 24.3
+    "pct": 25.6
    },
    {
     "name": "Volatility vs usual",
-    "pct": 17.8
+    "pct": 18.2
    },
    {
     "name": "Trend (EMA20 vs EMA50)",
-    "pct": 17.3
-   },
-   {
-    "name": "Pattern score",
-    "pct": 8.0
-   },
-   {
-    "name": "RSI",
-    "pct": 7.1
+    "pct": 13.5
    },
    {
     "name": "Move over 20 candles",
-    "pct": 6.8
+    "pct": 10.4
+   },
+   {
+    "name": "Pattern score",
+    "pct": 6.6
+   },
+   {
+    "name": "RSI",
+    "pct": 6.1
    }
   ],
   "history": [
+   {
+    "version": 18,
+    "trained_at": 1794290833.0497868,
+    "lessons": 4201
+   },
+   {
+    "version": 17,
+    "trained_at": 1794290832.7251406,
+    "lessons": 3998
+   },
    {
     "version": 16,
     "trained_at": 1794228841.7578807,
@@ -198,16 +222,6 @@
     "version": 14,
     "trained_at": 1794228841.1305075,
     "lessons": 3397
-   },
-   {
-    "version": 13,
-    "trained_at": 1794228840.2922273,
-    "lessons": 3193
-   },
-   {
-    "version": 12,
-    "trained_at": 1793849500.1349363,
-    "lessons": 3008
    }
   ]
  }

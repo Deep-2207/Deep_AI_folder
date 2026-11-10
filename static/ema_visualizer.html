@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMA Options Strategy Visualizer</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --background: #0b0e14;
+      --foreground: #e6edf3;
+      --card: #131722;
+      --border: #2a2e39;
+      --muted-foreground: #848e9c;
+      --primary: #2563eb;
+      --primary-foreground: #ffffff;
+    }
+    body { background-color: var(--background); }
+    .candle { transition: all 0.3s ease; }
+    .pulse-glow {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.04); }
+    }
+  </style>
+</head>
+<body class="text-[var(--foreground)] antialiased p-3 sm:p-5">
+
+  <!-- Top Navigation -->
+  <div class="max-w-4xl mx-auto mb-3 flex items-center justify-between text-xs text-slate-400">
+    <div class="flex items-center gap-3">
+      <a href="/" class="hover:text-white transition flex items-center gap-1 font-semibold text-blue-400">&larr; Back to Live Scanner</a>
+      <span>&bull;</span>
+      <a href="/market" class="hover:text-white transition font-medium">Market Radar</a>
+      <span>&bull;</span>
+      <a href="/backtest" class="hover:text-white transition font-medium">Backtest</a>
+      <span>&bull;</span>
+      <a href="/knowledge" class="hover:text-white transition font-medium">Knowledge</a>
+    </div>
+    <div class="font-mono text-slate-500">EMA Playbook &amp; Trading Strategy</div>
+  </div>
+
+  <div class="max-w-4xl mx-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl overflow-hidden">
+    <!-- Header -->
+    <div class="p-5 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-4 bg-[var(--card)]">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+          Pro Trader Visual Playbook
+        </div>
+        <h2 class="text-xl font-bold text-[var(--foreground)]">EMA Execution: When to Buy Calls vs. Puts</h2>
+        <p class="text-xs text-[var(--muted-foreground)] mt-1">Interactive step-by-step chart walkthrough illustrating entry triggers, invalidations, and value zones.</p>
+      </div>
+
+      <!-- Mode Switcher & Live Action -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-[var(--background)] p-1 rounded-xl border border-[var(--border)]">
+          <button id="btn-call" onclick="switchMode('call')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow transition-all">
+            🟢 Buy Call Setup
+          </button>
+          <button id="btn-put" onclick="switchMode('put')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all">
+            🔴 Buy Put Setup
+          </button>
+          <button id="btn-trap" onclick="switchMode('trap')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all">
+            ⚠️ The Retail Trap
+          </button>
+        </div>
+        <a href="/" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow transition-all flex items-center gap-1.5">
+          ⚡ Trade on Live Chart &rarr;
+        </a>
+      </div>
+    </div>
+          🟢 Buy Call Setup
+        </button>
+        <button id="btn-put" onclick="switchMode('put')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all">
+          🔴 Buy Put Setup
+        </button>
+        <button id="btn-trap" onclick="switchMode('trap')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all">
+          ⚠️ The Retail Trap
+        </button>
+      </div>
+    </div>
+
+    <!-- Chart Canvas & Stage -->
+    <div class="p-5 bg-[var(--background)]/40 relative">
+      <!-- Indicators Legend -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3 text-xs">
+        <div class="flex items-center gap-4 bg-[var(--card)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+          <span class="flex items-center gap-1.5 font-medium">
+            <span class="w-3.5 h-1 rounded bg-cyan-400"></span> 9 EMA (Momentum)
+          </span>
+          <span class="flex items-center gap-1.5 font-medium">
+            <span class="w-3.5 h-1 rounded bg-amber-400"></span> 21 EMA (Value Anchor)
+          </span>
+          <span class="flex items-center gap-1.5 font-medium text-[var(--muted-foreground)]">
+            <span class="w-3.5 h-1 rounded bg-slate-500"></span> 200 EMA (Macro Trend)
+          </span>
+          <span class="flex items-center gap-1.5 font-medium text-emerald-400">
+            <span class="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/40"></span> Value Pocket
+          </span>
+        </div>
+
+        <!-- Video Player Controls -->
+        <div class="flex items-center gap-2">
+          <button id="btn-play" onclick="togglePlay()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition">
+            <svg id="play-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
+            <span id="play-text">Play Replay</span>
+          </button>
+          <button onclick="prevStep()" class="p-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] text-[var(--foreground)]">⏮</button>
+          <button onclick="nextStep()" class="p-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] text-[var(--foreground)]">⏭</button>
+          <button onclick="resetReplay()" class="p-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] text-[var(--foreground)]">🔄</button>
+        </div>
+      </div>
+
+      <!-- SVG Chart Viewport -->
+      <div class="w-full bg-[var(--card)] rounded-xl border border-[var(--border)] p-2 shadow-inner overflow-hidden">
+        <svg id="trading-chart" viewBox="0 0 820 380" class="w-full h-auto select-none font-sans">
+          <!-- Grid Lines -->
+          <defs>
+            <pattern id="grid" width="60" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-opacity="0.07" stroke-width="1"/>
+            </pattern>
+            <linearGradient id="callPocketGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.08"/>
+            </linearGradient>
+            <linearGradient id="putPocketGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.08"/>
+              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.18"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+
+          <!-- Dynamic Value Zone Polygon -->
+          <path id="value-zone-polygon" fill="url(#callPocketGrad)" opacity="0.8" />
+
+          <!-- 200 Macro EMA Line -->
+          <path id="line-ema200" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="6,4" />
+
+          <!-- 21 EMA Line -->
+          <path id="line-ema21" fill="none" stroke="#f59e0b" stroke-width="2.8" stroke-linecap="round" />
+
+          <!-- 9 EMA Line -->
+          <path id="line-ema9" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" />
+
+          <!-- Candlesticks Container -->
+          <g id="candles-container"></g>
+
+          <!-- Annotations Layer (Target, Stop, Trigger) -->
+          <g id="annotations-container"></g>
+        </svg>
+      </div>
+
+      <!-- Step Progress Bar -->
+      <div class="w-full bg-[var(--border)] h-1.5 rounded-full mt-3 overflow-hidden">
+        <div id="step-progress" class="bg-blue-500 h-full w-1/5 transition-all duration-300"></div>
+      </div>
+    </div>
+
+    <!-- Step Commentary & Professional Breakdown -->
+    <div class="p-5 border-t border-[var(--border)] bg-[var(--card)]">
+      <div class="flex items-start gap-4">
+        <div id="step-badge" class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold flex items-center justify-center shrink-0 text-base">
+          1
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1">
+            <h3 id="step-title" class="font-bold text-sm text-[var(--foreground)]">Phase 1: Macro Alignment & Regime Confirmation</h3>
+            <span id="step-counter" class="text-xs px-2 py-0.5 rounded bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">Step 1 of 5</span>
+          </div>
+          <p id="step-desc" class="text-xs text-[var(--muted-foreground)] leading-relaxed">
+            Price is trading comfortably above the 200 EMA (Bull Market Regime). The 9 EMA has crossed above the 21 EMA and both are sloping upward at a 40° angle. We exclusively look for CALL options; Puts are completely off the table.
+          </p>
+
+          <!-- Pro Tactical Note Box -->
+          <div class="mt-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] flex items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 font-semibold">⚡ Greek Edge:</span>
+              <span id="pro-tip-text" class="text-[var(--foreground)]">Theta decay works against option buyers. Never chase green candles at the top; wait for the pullback into the value pocket.</span>
+            </div>
+            <div id="trade-metric-pill" class="shrink-0 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Bias: CALL ONLY
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rule Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-5 pt-0 bg-[var(--card)]">
+      <div class="p-3 rounded-xl bg-[var(--background)]/60 border border-[var(--border)]">
+        <div class="text-xs font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+          <span>🎯</span> The Value Zone
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">
+          The space between the 9 & 21 EMA is institutional dynamic support. This is where options premiums contract, giving you the cheapest entry before the next impulse.
+        </p>
+      </div>
+
+      <div class="p-3 rounded-xl bg-[var(--background)]/60 border border-[var(--border)]">
+        <div class="text-xs font-bold text-amber-400 mb-1 flex items-center gap-1.5">
+          <span>🛑</span> Defined Invalidation
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">
+          If a 5-minute/15-minute candle closes across the 21 EMA, the trend has lost momentum. Cut the contract immediately to protect capital.
+        </p>
+      </div>
+
+      <div class="p-3 rounded-xl bg-[var(--background)]/60 border border-[var(--border)]">
+        <div class="text-xs font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
+          <span>💰</span> Profit Target & Trail
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)]">
+          Sell 50% at the prior high or 1.5x Risk/Reward. Trail the remaining contracts candle-by-candle along the 9 EMA until a candle closes beneath it.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let currentMode = 'call';
+    let currentStep = 1;
+    let maxSteps = 5;
+    let isPlaying = false;
+    let playTimer = null;
+
+    // Chart Coordinates Data for Scenarios
+    // SVG Dimensions: 820 x 380. X runs 40 to 780.
+    const scenarios = {
+      call: {
+        title: "Call Option Execution (Bull Trend Pullback)",
+        metric: "Bias: CALL (Bullish)",
+        metricClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        ema200: "M 30,340 C 250,335 500,325 790,310",
+        ema21: "M 30,290 C 180,260 380,215 520,205 C 640,195 720,135 790,110",
+        ema9: "M 30,270 C 160,225 350,170 480,185 C 560,190 680,115 790,75",
+        valueZone: "M 30,270 C 160,225 350,170 480,185 C 560,190 680,115 790,75 L 790,110 C 720,135 640,195 520,205 C 380,215 180,260 30,290 Z",
+        pocketGrad: "callPocketGrad",
+        candles: [
+          // [x, open, high, low, close]
+          { x: 60, o: 285, h: 260, l: 290, c: 265, bull: true },
+          { x: 110, o: 265, h: 235, l: 270, c: 240, bull: true },
+          { x: 160, o: 242, h: 210, l: 248, c: 215, bull: true },
+          { x: 210, o: 215, h: 185, l: 220, c: 190, bull: true },
+          { x: 260, o: 190, h: 170, l: 195, c: 175, bull: true },
+          { x: 310, o: 175, h: 160, l: 180, c: 165, bull: true },
+          // Pullback starts
+          { x: 360, o: 165, h: 165, l: 195, c: 190, bull: false },
+          { x: 410, o: 190, h: 190, l: 210, c: 205, bull: false },
+          // Hammer rejection at 21 EMA (The Trigger)
+          { x: 460, o: 205, h: 192, l: 225, c: 196, bull: true, isTrigger: true },
+          // Continuation & breakout
+          { x: 510, o: 196, h: 170, l: 200, c: 172, bull: true },
+          { x: 560, o: 172, h: 145, l: 175, c: 148, bull: true },
+          { x: 610, o: 148, h: 125, l: 152, c: 130, bull: true },
+          { x: 660, o: 130, h: 105, l: 135, c: 110, bull: true },
+          { x: 710, o: 110, h: 80,  l: 115, c: 85,  bull: true },
+          { x: 760, o: 85,  h: 60,  l: 90,  c: 65,  bull: true }
+        ],
+        steps: [
+          {
+            step: 1,
+            title: "Phase 1: Institutional Trend & EMA Fan-Out",
+            desc: "Price is cleanly above the 200 EMA. The fast 9 EMA is above the 21 EMA and sloping sharply upwards. Rule: We ONLY look for Call contracts. Do not try to pick tops with Puts.",
+            tip: "Delta selection: Pick 0.60 to 0.70 Delta (Slight In-The-Money) to avoid rapid theta decay.",
+            visibleCandles: 4,
+            annotations: []
+          },
+          {
+            step: 2,
+            title: "Phase 2: The Extension Peak (Do NOT Buy Calls Here)",
+            desc: "Candles 5 & 6 are extended far away from the 9 EMA. This is retail FOMO territory. Options premiums are inflated, and IV is spiking. Buying calls here leads to brutal drawdowns on mean reversion.",
+            tip: "Patience rule: Never chase a stock that hasn't touched its 9 or 21 EMA in 4+ candles.",
+            visibleCandles: 6,
+            annotations: [
+              { type: "warning", x: 310, y: 140, text: "Overextended! Do Not Buy" }
+            ]
+          },
+          {
+            step: 3,
+            title: "Phase 3: The Pullback into the 9/21 'Value Pocket'",
+            desc: "Price pulls back naturally on lighter volume into the shaded zone between 9 EMA and 21 EMA. Option contracts get cheaper as short-term IV cools off. This is our ambush zone.",
+            tip: "The 21 EMA acts like a trampoline in a healthy trend. We wait for signs of life.",
+            visibleCandles: 8,
+            annotations: [
+              { type: "zone", x: 410, y: 220, text: "Value Pocket Entry Prep" }
+            ]
+          },
+          {
+            step: 4,
+            title: "Phase 4: The Trigger Candle (EXECUTE CALL)",
+            desc: "Candle 9 tests the 21 EMA and leaves a long lower wick (hammer), closing back above the 9 EMA. This proves buyers defended the level. TRIGGER: Buy Call option on the close of this candle.",
+            tip: "Hard Stop: Set invalidation stop loss right below the 21 EMA (at the bottom wick).",
+            visibleCandles: 9,
+            annotations: [
+              { type: "trigger", x: 460, y: 180, text: "🟢 BUY CALL HERE (Hammer on 21 EMA)" },
+              { type: "stop", x: 460, y: 240, text: "🛑 Stop Loss (Below 21 EMA)" }
+            ]
+          },
+          {
+            step: 5,
+            title: "Phase 5: Momentum Expansion & 9 EMA Trailing Exit",
+            desc: "Price explodes higher with the trend. Take 50% profit at the previous high (Candle 6 level). Trail the remaining position using the 9 EMA as a dynamic stop until a candle closes beneath it.",
+            tip: "Winner's habit: Let the 9 EMA do the work. Never sell a winning Call early while price rides above the 9 EMA.",
+            visibleCandles: 15,
+            annotations: [
+              { type: "target", x: 610, y: 110, text: "💰 TP 1: Previous High" },
+              { type: "target", x: 760, y: 50, text: "🚀 TP 2: Trail on 9 EMA" }
+            ]
+          }
+        ]
+      },
+
+      put: {
+        title: "Put Option Execution (Bear Trend Rejection)",
+        metric: "Bias: PUT (Bearish)",
+        metricClass: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+        ema200: "M 30,50 C 250,60 500,80 790,95",
+        ema21: "M 30,110 C 180,140 380,185 520,195 C 640,205 720,265 790,290",
+        ema9: "M 30,130 C 160,175 350,230 480,215 C 560,210 680,285 790,325",
+        valueZone: "M 30,110 C 180,140 380,185 520,195 C 640,205 720,265 790,290 L 790,325 C 680,285 560,210 480,215 C 350,230 160,175 30,130 Z",
+        pocketGrad: "putPocketGrad",
+        candles: [
+          // Bearish downtrend
+          { x: 60, o: 115, h: 140, l: 110, c: 135, bull: false },
+          { x: 110, o: 135, h: 165, l: 130, c: 160, bull: false },
+          { x: 160, o: 158, h: 190, l: 152, c: 185, bull: false },
+          { x: 210, o: 185, h: 215, l: 180, c: 210, bull: false },
+          { x: 260, o: 210, h: 230, l: 205, c: 225, bull: false },
+          { x: 310, o: 225, h: 240, l: 220, c: 235, bull: false },
+          // Relief bounce
+          { x: 360, o: 235, h: 235, l: 205, c: 210, bull: true },
+          { x: 410, o: 210, h: 210, l: 190, c: 195, bull: true },
+          // Rejection candle at 21 EMA (Shooting star / Wick)
+          { x: 460, o: 195, h: 165, l: 208, c: 204, bull: false, isTrigger: true },
+          // Downward resumption
+          { x: 510, o: 204, h: 200, l: 230, c: 228, bull: false },
+          { x: 560, o: 228, h: 225, l: 255, c: 252, bull: false },
+          { x: 610, o: 252, h: 248, l: 275, c: 270, bull: false },
+          { x: 660, o: 270, h: 265, l: 295, c: 290, bull: false },
+          { x: 710, o: 290, h: 285, l: 320, c: 315, bull: false },
+          { x: 760, o: 315, h: 310, l: 340, c: 335, bull: false }
+        ],
+        steps: [
+          {
+            step: 1,
+            title: "Phase 1: Bear Market Alignment (Under 200 EMA)",
+            desc: "Price is cleanly underneath the 200 EMA. The 9 EMA is below the 21 EMA, with both sloping downwards. Institutional money is selling rallies. Rule: Puts only.",
+            tip: "Never catch falling knives with Calls when price is trapped below descending 9 & 21 EMAs.",
+            visibleCandles: 4,
+            annotations: []
+          },
+          {
+            step: 2,
+            title: "Phase 2: Stretched Downside (Avoid Chasing Puts)",
+            desc: "Price falls far away from the 9 EMA. Retail traders buy puts here at maximum implied volatility and get crushed by sudden short-covering bounces.",
+            tip: "Rule: When price stretches > 3% below 9 EMA, wait for the relief rally before entering Puts.",
+            visibleCandles: 6,
+            annotations: [
+              { type: "warning", x: 310, y: 260, text: "Oversold! Don't Chase Puts" }
+            ]
+          },
+          {
+            step: 3,
+            title: "Phase 3: The Bear Relief Rally into the Value Zone",
+            desc: "Price rallies weakly back into the pocket between the falling 9 EMA and 21 EMA. Notice volume dries up on the bounce—this is not real buying, just short-covering.",
+            tip: "The 21 EMA is institutional dynamic resistance in a bear trend.",
+            visibleCandles: 8,
+            annotations: [
+              { type: "zone", x: 410, y: 170, text: "Resistance Test Zone" }
+            ]
+          },
+          {
+            step: 4,
+            title: "Phase 4: Upper Wick Rejection (EXECUTE PUT)",
+            desc: "Candle 9 spikes into the 21 EMA but gets fiercely rejected, leaving an upper wick and closing back below the 9 EMA. TRIGGER: Buy Put option.",
+            tip: "Stop Loss: Exactly 1 tick above the 21 EMA. If it reclaims the 21 EMA, exit immediately.",
+            visibleCandles: 9,
+            annotations: [
+              { type: "trigger", x: 460, y: 220, text: "🔴 BUY PUT HERE (Rejection at 21 EMA)" },
+              { type: "stop", x: 460, y: 160, text: "🛑 Stop Loss (Above 21 EMA)" }
+            ]
+          },
+          {
+            step: 5,
+            title: "Phase 5: Liquidation Wave & Profit Taking",
+            desc: "The stock collapses as sellers slam the bid. Puts surge in value as both Delta and Vega expand rapidly. Lock in partial profits at the prior low and trail with the 9 EMA.",
+            tip: "Puts move faster than calls. Take profits aggressively at key support levels.",
+            visibleCandles: 15,
+            annotations: [
+              { type: "target", x: 610, y: 290, text: "💰 TP 1: Previous Low" },
+              { type: "target", x: 760, y: 350, text: "🩸 TP 2: Liquidation Low" }
+            ]
+          }
+        ]
+      },
+
+      trap: {
+        title: "The Retail Trap: Overextension & Theta Kill",
+        metric: "Risk: EXTREME DANGER",
+        metricClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        ema200: "M 30,340 C 250,335 500,325 790,310",
+        ema21: "M 30,280 C 200,260 400,240 600,220 790,200",
+        ema9: "M 30,260 C 200,230 400,200 600,180 790,165",
+        valueZone: "M 30,260 C 200,230 400,200 600,180 790,165 L 790,200 C 600,220 400,240 200,260 30,280 Z",
+        pocketGrad: "callPocketGrad",
+        candles: [
+          { x: 60, o: 280, h: 255, l: 285, c: 260, bull: true },
+          { x: 120, o: 260, h: 230, l: 265, c: 235, bull: true },
+          { x: 180, o: 235, h: 195, l: 240, c: 200, bull: true },
+          { x: 240, o: 200, h: 155, l: 205, c: 160, bull: true },
+          { x: 300, o: 160, h: 110, l: 165, c: 115, bull: true }, // parabolic
+          { x: 360, o: 115, h: 75,  l: 120, c: 80,  bull: true }, // FOMO peak
+          // Brutal mean reversion
+          { x: 420, o: 80,  h: 80,  l: 145, c: 140, bull: false },
+          { x: 480, o: 140, h: 140, l: 195, c: 190, bull: false },
+          { x: 540, o: 190, h: 185, l: 215, c: 210, bull: false },
+          { x: 600, o: 210, h: 205, l: 225, c: 220, bull: false }
+        ],
+        steps: [
+          {
+            step: 1,
+            title: "Phase 1: Normal Uptrend",
+            desc: "Price begins moving higher in an orderly fashion with the 9 & 21 EMA providing dynamic support.",
+            tip: "Normal trend angle should be 30° to 45°, not vertical.",
+            visibleCandles: 3,
+            annotations: []
+          },
+          {
+            step: 2,
+            title: "Phase 2: Parabolic Climax (The Retail Magnet)",
+            desc: "Price goes parabolic, moving almost vertical (Candles 4 & 5). It is now over 150 points away from its 21 EMA. Social media buzzes, retail traders rush to buy Calls at the top.",
+            tip: "Options IV surges to 95th percentile here. Contracts are extraordinarily overpriced.",
+            visibleCandles: 6,
+            annotations: [
+              { type: "warning", x: 360, y: 55, text: "❌ Retail Buys Call Here at Max IV" }
+            ]
+          },
+          {
+            step: 3,
+            title: "Phase 3: The Violent Snapback & Theta Massacre",
+            desc: "Like an overstretched rubber band, price violently snaps back to the 21 EMA (Candles 7 & 8). The Call option buyer loses 70% to 90% in two candles due to negative Delta + IV Crush.",
+            tip: "Pro Rule: An asset ALWAYS reconnects with its moving average. Never buy Calls when stretched.",
+            visibleCandles: 8,
+            annotations: [
+              { type: "stop", x: 480, y: 170, text: "💀 -80% Option Premium Loss" }
+            ]
+          },
+          {
+            step: 4,
+            title: "Phase 4: Chop & Consolidation at the 21 EMA",
+            desc: "Price finally hits the 21 EMA and stalls sideways. Theta decay burns any remaining value in the retail trader's short-expiry contracts.",
+            tip: "Wait for the EMAs to catch up and reorganize before taking any new directional bet.",
+            visibleCandles: 10,
+            annotations: [
+              { type: "zone", x: 600, y: 240, text: "Consolidation / Mean Reversion Complete" }
+            ]
+          },
+          {
+            step: 5,
+            title: "Phase 5: The Pro Trader Takeaway",
+            desc: "To win in options with EMAs: 1. Identify the 200 EMA regime. 2. WAIT for the pullback to the 21 EMA value zone. 3. Enter on the 9 EMA confirmation candle. Never buy extended green or short extended red.",
+            tip: "Discipline beats prediction every single day in the options market.",
+            visibleCandles: 10,
+            annotations: []
+          }
+        ]
+      }
+    };
+
+    function renderChart() {
+      const scenario = scenarios[currentMode];
+      const stepData = scenario.steps[currentStep - 1];
+
+      // Update lines
+      document.getElementById('line-ema200').setAttribute('d', scenario.ema200);
+      document.getElementById('line-ema21').setAttribute('d', scenario.ema21);
+      document.getElementById('line-ema9').setAttribute('d', scenario.ema9);
+      document.getElementById('value-zone-polygon').setAttribute('d', scenario.valueZone);
+      document.getElementById('value-zone-polygon').setAttribute('fill', `url(#${scenario.pocketGrad})`);
+
+      // Render Candles up to stepData.visibleCandles
+      const candleContainer = document.getElementById('candles-container');
+      candleContainer.innerHTML = '';
+
+      const count = Math.min(stepData.visibleCandles, scenario.candles.length);
+      for (let i = 0; i < count; i++) {
+        const c = scenario.candles[i];
+        const color = c.bull ? '#10b981' : '#f43f5e';
+        const topY = Math.min(c.o, c.c);
+        const bodyH = Math.max(Math.abs(c.o - c.c), 4);
+        const wickTop = Math.min(c.h, c.l);
+        const wickBottom = Math.max(c.h, c.l);
+
+        // Wick
+        const wick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        wick.setAttribute('x1', c.x);
+        wick.setAttribute('x2', c.x);
+        wick.setAttribute('y1', wickTop);
+        wick.setAttribute('y2', wickBottom);
+        wick.setAttribute('stroke', color);
+        wick.setAttribute('stroke-width', '1.8');
+        wick.setAttribute('class', 'candle');
+        candleContainer.appendChild(wick);
+
+        // Body
+        const body = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        body.setAttribute('x', c.x - 9);
+        body.setAttribute('y', topY);
+        body.setAttribute('width', 18);
+        body.setAttribute('height', bodyH);
+        body.setAttribute('fill', color);
+        body.setAttribute('rx', '2');
+        body.setAttribute('class', 'candle');
+        if (c.isTrigger && i === count - 1) {
+          body.setAttribute('stroke', '#ffffff');
+          body.setAttribute('stroke-width', '2');
+        }
+        candleContainer.appendChild(body);
+      }
+
+      // Render Annotations
+      const annotContainer = document.getElementById('annotations-container');
+      annotContainer.innerHTML = '';
+
+      stepData.annotations.forEach(a => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'pulse-glow');
+
+        let bgCol = '#059669';
+        if (a.type === 'stop') bgCol = '#dc2626';
+        if (a.type === 'warning') bgCol = '#d97706';
+        if (a.type === 'target') bgCol = '#2563eb';
+        if (a.type === 'zone') bgCol = '#475569';
+
+        const textLen = a.text.length * 7.5 + 20;
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', a.x - textLen / 2);
+        rect.setAttribute('y', a.y - 12);
+        rect.setAttribute('width', textLen);
+        rect.setAttribute('height', 24);
+        rect.setAttribute('rx', '6');
+        rect.setAttribute('fill', bgCol);
+        rect.setAttribute('stroke', '#ffffff');
+        rect.setAttribute('stroke-opacity', '0.2');
+        rect.setAttribute('stroke-width', '1');
+        g.appendChild(rect);
+
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', a.x);
+        txt.setAttribute('y', a.y + 4);
+        txt.setAttribute('fill', '#ffffff');
+        txt.setAttribute('font-size', '12px');
+        txt.setAttribute('font-weight', '600');
+        txt.setAttribute('text-anchor', 'middle');
+        txt.textContent = a.text;
+        g.appendChild(txt);
+
+        annotContainer.appendChild(g);
+      });
+
+      // Update Texts
+      document.getElementById('step-badge').textContent = stepData.step;
+      document.getElementById('step-counter').textContent = `Step ${stepData.step} of ${maxSteps}`;
+      document.getElementById('step-title').textContent = stepData.title;
+      document.getElementById('step-desc').textContent = stepData.desc;
+      document.getElementById('pro-tip-text').textContent = stepData.tip;
+
+      const metricPill = document.getElementById('trade-metric-pill');
+      metricPill.textContent = scenario.metric;
+      metricPill.className = `shrink-0 px-2.5 py-1 rounded-md text-xs font-mono font-medium border ${scenario.metricClass}`;
+
+      // Update progress bar
+      document.getElementById('step-progress').style.width = `${(currentStep / maxSteps) * 100}%`;
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      currentStep = 1;
+      pause();
+
+      ['call', 'put', 'trap'].forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (m === mode) {
+          if (m === 'call') btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow";
+          if (m === 'put') btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 text-white shadow";
+          if (m === 'trap') btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 text-white shadow";
+        } else {
+          btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all";
+        }
+      });
+
+      renderChart();
+    }
+
+    function nextStep() {
+      if (currentStep < maxSteps) {
+        currentStep++;
+        renderChart();
+      } else {
+        pause();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        renderChart();
+      }
+    }
+
+    function resetReplay() {
+      pause();
+      currentStep = 1;
+      renderChart();
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        pause();
+      } else {
+        play();
+      }
+    }
+
+    function play() {
+      isPlaying = true;
+      document.getElementById('play-text').textContent = "Pause";
+      document.getElementById('play-icon').innerHTML = '<path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z"/>';
+
+      if (currentStep >= maxSteps) currentStep = 1;
+      renderChart();
+
+      playTimer = setInterval(() => {
+        if (currentStep < maxSteps) {
+          currentStep++;
+          renderChart();
+        } else {
+          pause();
+        }
+      }, 2500);
+    }
+
+    function pause() {
+      isPlaying = false;
+      if (playTimer) clearInterval(playTimer);
+      document.getElementById('play-text').textContent = "Play Replay";
+      document.getElementById('play-icon').innerHTML = '<path d="M4 4l12 6-12 6z"/>';
+    }
+
+    // Initialize
+    renderChart();
+  </script>
+</body>
+</html>

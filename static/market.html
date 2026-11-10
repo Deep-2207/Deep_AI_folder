@@ -97,6 +97,7 @@
   <span class="spacer"></span>
   <a class="navlink" href="/">Live Scanner</a>
   <a class="navlink active" href="/market">Market Radar</a>
+  <a class="navlink" href="/strategy/ema" target="_blank" title="EMA Options Strategy Playbook">EMA Playbook</a>
   <a class="navlink" href="/test">Test Lab</a>
   <a class="navlink" href="/backtest">Backtest</a>
   <a class="navlink" href="/knowledge">Knowledge</a>
@@ -371,7 +372,7 @@
       document.getElementById('l-pct').textContent = `${l.change_pct}%`;
       document.getElementById('l-name').textContent = l.name || l.symbol;
       document.getElementById('l-price').textContent = fmtNum(l.price, l.currency);
-      document.getElementById('l-range').textContent = `${fmtNum(l.day_low, l.currency)} - ${fmtNum(l.day_high, g => l.currency)}`;
+      document.getElementById('l-range').textContent = `${fmtNum(l.day_low, l.currency)} - ${fmtNum(l.day_high, l.currency)}`;
     } else {
       document.getElementById('l-sym').textContent = '-';
       document.getElementById('l-pct').textContent = '0.00%';

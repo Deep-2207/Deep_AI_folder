@@ -172,8 +172,25 @@ def seeded_frame(interval: str, follow: float, seed: int, n: int = 3000) -> pd.D
 
 # ---------------------------------------------------------------- replay sessions
 
+NSE_ALIASES = {
+    "NIFTY": "^NSEI",
+    "NIFTY50": "^NSEI",
+    "NIFTY 50": "^NSEI",
+    "BANKNIFTY": "^NSEBANK",
+    "BANK NIFTY": "^NSEBANK",
+    "NIFTYBANK": "^NSEBANK",
+    "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
+    "FIN NIFTY": "NIFTY_FIN_SERVICE.NS",
+    "NIFTYIT": "^CNXIT",
+    "NIFTY IT": "^CNXIT",
+    "SENSEX": "^BSESN",
+}
+
+
 def nse_symbol(symbol: str) -> str:
     s = symbol.strip().upper()
+    if s in NSE_ALIASES:
+        return NSE_ALIASES[s]
     return s if s.startswith("^") or "." in s else s + ".NS"
 
 

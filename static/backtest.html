@@ -92,7 +92,7 @@
   <label class="chk" title="Same shape as an Inverted Hammer but after a rise"><input type="checkbox" value="Shooting Star"> Shooting Star</label>
   <button id="go" class="primary">Load</button>
   <span style="flex:1"></span>
-  <a href="/">Live</a><a href="/market">Market Radar</a><a href="/test">Test Lab</a><a href="/knowledge">Knowledge</a>
+  <a href="/">Live</a><a href="/market">Market Radar</a><a href="/strategy/ema" target="_blank" title="EMA Options Strategy Playbook">EMA Playbook</a><a href="/test">Test Lab</a><a href="/knowledge">Knowledge</a>
 </header>
 <div id="err"></div>
 <main>
@@ -153,9 +153,21 @@ const fmtTime = t => new Date(t * 1000).toLocaleString([], daily()
 const W = () => +$('wsize').value;
 const H = () => D.horizon;
 
+const resolveSymbol = (p, s) => {
+  s = (s || '').trim().toUpperCase();
+  if (p === 'nse') {
+    if (s === 'NIFTY' || s === 'NIFTY50' || s === 'NIFTY 50') return '^NSEI';
+    if (s === 'BANKNIFTY' || s === 'BANK NIFTY' || s === 'NIFTYBANK') return '^NSEBANK';
+    if (s === 'FINNIFTY' || s === 'FIN NIFTY') return 'NIFTY_FIN_SERVICE.NS';
+    if (s === 'SENSEX') return '^BSESN';
+  }
+  return s;
+};
+
 async function load() {
   const names = [...document.querySelectorAll('header input[type=checkbox]:checked')].map(x => x.value);
-  const q = new URLSearchParams({ provider: $('provider').value, symbol: $('symbol').value.trim(), interval: $('interval').value,
+  const sym = resolveSymbol($('provider').value, $('symbol').value);
+  const q = new URLSearchParams({ provider: $('provider').value, symbol: sym, interval: $('interval').value,
     horizon: $('horizon').value, patterns: names.join(','), candles: 5000 });
   $('go').disabled = true; $('go').textContent = 'Loading...';
   try {
@@ -331,6 +343,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') $('next').click();
   if (e.key === 'ArrowLeft') $('prev').click();
 });
+
+const params = new URLSearchParams(window.location.search);
+if (params.get('provider')) $('provider').value = params.get('provider');
+if (params.get('symbol')) $('symbol').value = params.get('symbol').trim().toUpperCase();
+if (params.get('interval')) $('interval').value = params.get('interval');
+if (params.get('horizon')) $('horizon').value = params.get('horizon');
 load();
 </script>
 </body>

@@ -1,5 +1,5 @@
 # Trading Knowledge Starter Book
-Extracted text of `dummy_trading_knowledge_book.pdf` (5 pages, 2026-11-05). Page numbers are the file's pages. Quote from here when citing.
+Extracted text of `dummy_trading_knowledge_book.pdf` (5 pages, 2026-11-09). Page numbers are the file's pages. Quote from here when citing.
 
 ---
 ## Page 1
