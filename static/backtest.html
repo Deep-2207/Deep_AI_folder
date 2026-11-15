@@ -155,7 +155,15 @@ const H = () => D.horizon;
 
 const resolveSymbol = (p, s) => {
   s = (s || '').trim().toUpperCase();
-  if (p === 'nse') {
+  if (p === 'binance') {
+    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'XAUUSD') return 'PAXGUSDT';
+  } else if (p === 'yahoo') {
+    if (s === 'GOLD' || s === 'XAU' || s === 'XAUUSD' || s === 'GOLDFUTURES') return 'GC=F';
+    if (s === 'OIL' || s === 'CRUDEOIL') return 'CL=F';
+    if (s === 'SILVER') return 'SI=F';
+  } else if (p === 'nse') {
+    if (s === 'GOLD' || s === 'GOLDBEES') return 'GOLDBEES.NS';
+    if (s === 'SILVER' || s === 'SILVERBEES') return 'SILVERBEES.NS';
     if (s === 'NIFTY' || s === 'NIFTY50' || s === 'NIFTY 50') return '^NSEI';
     if (s === 'BANKNIFTY' || s === 'BANK NIFTY' || s === 'NIFTYBANK') return '^NSEBANK';
     if (s === 'FINNIFTY' || s === 'FIN NIFTY') return 'NIFTY_FIN_SERVICE.NS';

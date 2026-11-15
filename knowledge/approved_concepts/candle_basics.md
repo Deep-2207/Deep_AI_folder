@@ -3,7 +3,7 @@ id: candle_basics
 name: Candle (OHLCV) basics and candle completeness
 kind: concept
 category: Market data
-status: PENDING_REVIEW
+status: APPROVED
 origin: book
 sources:
 - document: dummy_trading_knowledge_book.pdf
@@ -32,6 +32,15 @@ history:
   status: PENDING_REVIEW
   by: claude
   note: structured for review
+- date: '2026-11-15'
+  status: APPROVED
+  by: you
+  note: null
+review:
+  by: you
+  date: '2026-11-15'
+  decision: APPROVED
+  note: null
 ---
 
 # Candle (OHLCV) basics and candle completeness

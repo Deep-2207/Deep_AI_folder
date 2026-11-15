@@ -170,6 +170,13 @@ UNIVERSES = {
             "SMCI", "IONQ", "RGTI", "RIVN", "UBER", "SNOW", "UPST", "TQQQ",
         ],
     },
+    "commodities_gold": {
+        "name": "Gold & Commodities (Futures & ETFs)",
+        "market": "us",
+        "symbols": [
+            "GC=F", "SI=F", "CL=F", "GLD", "SLV", "GDX", "IAU",
+        ],
+    },
 }
 
 _radar_cache: dict[str, tuple[float, dict]] = {}

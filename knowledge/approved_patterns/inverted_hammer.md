@@ -3,7 +3,7 @@ id: inverted_hammer
 name: Inverted Hammer
 kind: pattern
 category: 1-candle candlestick pattern
-status: PENDING_REVIEW
+status: IMPLEMENTED
 direction: bullish
 candles: 1
 code_name: Inverted Hammer
@@ -16,6 +16,19 @@ history:
   status: PENDING_REVIEW
   by: claude
   note: written from the existing code
+- date: '2026-11-15'
+  status: APPROVED
+  by: you
+  note: null
+- date: '2026-11-15'
+  status: IMPLEMENTED
+  by: system
+  note: 'code already follows this definition: stockpatterns/patterns.py (detect)'
+review:
+  by: you
+  date: '2026-11-15'
+  decision: APPROVED
+  note: null
 ---
 
 # Inverted Hammer

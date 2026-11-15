@@ -186,6 +186,11 @@
   .fo-chip.active { border-color: var(--up); background: rgba(38,166,154,.2); color: #fff; font-weight: 700; box-shadow: 0 0 8px rgba(38,166,154,.25); }
   .fo-chip.idx { border-color: rgba(76,141,255,.4); font-weight: 600; }
   .fo-chip.idx.active { border-color: var(--accent); background: rgba(76,141,255,.25); box-shadow: 0 0 8px rgba(76,141,255,.3); }
+  .fo-chip.gold { border-color: rgba(234,179,8,.4); color: #fde047; background: rgba(234,179,8,.1); }
+  .fo-chip.gold:hover { border-color: #eab308; background: rgba(234,179,8,.2); }
+  .fo-chip.gold.active { border-color: #eab308; background: rgba(234,179,8,.35); color: #fff; box-shadow: 0 0 10px rgba(234,179,8,.4); font-weight: 700; }
+  .gold-mkt { cursor: pointer; transition: all .15s ease; border-color: rgba(234,179,8,.4); color: #fde047; }
+  .gold-mkt:hover { border-color: #eab308; background: rgba(234,179,8,.15); }
   footer { padding: 0 16px 16px; color: var(--muted); font-size: 12px; }
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } #chartbox { height: 380px; } #side { max-height: none; } }
 </style>
@@ -194,9 +199,9 @@
 <header>
   <h1>Live Pattern Scanner</h1>
   <select id="provider" aria-label="Market">
-    <option value="yahoo">US stocks (live)</option>
+    <option value="binance">Crypto &amp; 24/7 Gold (PAXG)</option>
     <option value="nse">NSE India stocks</option>
-    <option value="binance">Crypto 24/7</option>
+    <option value="yahoo">US stocks &amp; Commodities</option>
   </select>
   <input id="symbol" value="PLTR" aria-label="Symbol" list="symlist">
   <datalist id="symlist"></datalist>
@@ -215,6 +220,7 @@
   <button id="go">Load</button>
   <button id="signal" class="sigbtn" title="Recalculate the trade signal now (it also updates by itself at every candle close)">&#9889; Update signal</button>
   <span class="spacer"></span>
+  <span class="mkt gold-mkt" id="mkt-gold" style="cursor:pointer; border-color:rgba(234,179,8,.4); color:#fde047" title="Click to view 24/7 Live Gold chart (PAXGUSDT)"><i style="background:#eab308; box-shadow:0 0 6px #eab308"></i>Gold <b>24/7 LIVE</b></span>
   <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
   <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
   <a class="navlink" href="/market">Market Radar</a>
@@ -287,10 +293,18 @@ const $ = id => document.getElementById(id);
 const tz = -new Date().getTimezoneOffset() * 60;           // show candles in local time
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const TEST = !!window.TEST_DEFAULT_SYMBOL;                  // /test page (replay) sets this
-const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'NIFTY', binance: 'BTCUSDT' };
+const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'NIFTY', binance: 'PAXGUSDT' };
 const resolveSymbol = (p, s) => {
   s = (s || '').trim().toUpperCase();
-  if (p === 'nse' || p === 'nse_replay') {
+  if (p === 'binance') {
+    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'XAUUSD') return 'PAXGUSDT';
+  } else if (p === 'yahoo') {
+    if (s === 'GOLD' || s === 'XAU' || s === 'XAUUSD' || s === 'GOLDFUTURES') return 'GC=F';
+    if (s === 'OIL' || s === 'CRUDEOIL') return 'CL=F';
+    if (s === 'SILVER') return 'SI=F';
+  } else if (p === 'nse' || p === 'nse_replay') {
+    if (s === 'GOLD' || s === 'GOLDBEES') return 'GOLDBEES.NS';
+    if (s === 'SILVER' || s === 'SILVERBEES') return 'SILVERBEES.NS';
     if (s === 'NIFTY' || s === 'NIFTY50' || s === 'NIFTY 50') return '^NSEI';
     if (s === 'BANKNIFTY' || s === 'BANK NIFTY' || s === 'NIFTYBANK') return '^NSEBANK';
     if (s === 'FINNIFTY' || s === 'FIN NIFTY') return 'NIFTY_FIN_SERVICE.NS';
@@ -299,9 +313,9 @@ const resolveSymbol = (p, s) => {
   return s;
 };
 const SUGGEST = {
-  yahoo: ['PLTR', 'SOXL', 'COIN', 'AMD', 'RIOT', 'MARA', 'TSLA', 'NVDA', 'SMCI', 'MSTR', 'IONQ', 'UPST', 'HOOD', 'SOFI', 'AAPL', 'META'],
-  nse: ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'ADANIENT', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'TATASTEEL', 'MARUTI', 'LT', 'WIPRO'],
-  binance: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
+  binance: ['PAXGUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
+  yahoo: ['GC=F', 'PLTR', 'SOXL', 'COIN', 'AMD', 'RIOT', 'MARA', 'TSLA', 'NVDA', 'SMCI', 'MSTR', 'IONQ', 'UPST', 'HOOD', 'SOFI', 'AAPL', 'META'],
+  nse: ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'GOLDBEES', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'ADANIENT', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'TATASTEEL', 'MARUTI', 'LT', 'WIPRO'],
 };
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -396,7 +410,13 @@ function render(d) {
   } else if (range) chart.timeScale().setVisibleLogicalRange(range);
   shownTimes = new Set(d.candles.map(c => c.time + tz));
 
-  const symLabel = d.symbol === '^NSEI' ? 'NIFTY 50' : d.symbol === '^NSEBANK' ? 'BANK NIFTY' : d.symbol === 'NIFTY_FIN_SERVICE.NS' ? 'FIN NIFTY' : d.symbol;
+  const symLabel = d.symbol === 'PAXGUSDT' ? 'Gold 24/7 (PAX Gold / USD)'
+    : d.symbol === 'GC=F' ? 'Gold Futures (COMEX)'
+    : d.symbol === 'GOLDBEES.NS' || d.symbol === 'GOLDBEES' ? 'Nippon India Gold BeES ETF'
+    : d.symbol === '^NSEI' ? 'NIFTY 50'
+    : d.symbol === '^NSEBANK' ? 'BANK NIFTY'
+    : d.symbol === 'NIFTY_FIN_SERVICE.NS' ? 'FIN NIFTY'
+    : d.symbol;
   $('price').textContent = num(d.last_price);
   $('meta').textContent = `${symLabel} ${d.interval} | ${d.history_candles} candles of history | updated ${new Date().toLocaleTimeString()}`;
   $('stale').textContent = d.stale ? 'Not live: market closed or feed delayed' : '';
@@ -959,10 +979,29 @@ function fillSuggestions() {
   const p = $('provider').value, list = $('symbol').list;
   if (!list) return;
   let rows = (SUGGEST[p] || []).map(s => [s, '']);
-  if ((p === 'nse' || p === 'nse_replay') && window.NIFTY500) {
+  if (p === 'binance') {
+    rows = [
+      ['PAXGUSDT', 'PAXGUSDT · 🟡 Gold Spot (24/7 Physical Gold / USD)'],
+      ['BTCUSDT', 'BTCUSDT · Bitcoin (Crypto 24/7)'],
+      ['ETHUSDT', 'ETHUSDT · Ethereum (Crypto 24/7)'],
+      ['SOLUSDT', 'SOLUSDT · Solana (Crypto 24/7)'],
+      ['XRPUSDT', 'XRPUSDT · Ripple XRP (Crypto 24/7)'],
+      ['DOGEUSDT', 'DOGEUSDT · Dogecoin (Crypto 24/7)'],
+    ];
+  } else if (p === 'yahoo') {
+    rows = [
+      ['GC=F', 'GC=F · 🟡 Gold Futures (COMEX Continuous)'],
+      ['SI=F', 'SI=F · Silver Futures (COMEX Continuous)'],
+      ['CL=F', 'CL=F · Crude Oil Futures (WTI NYMEX)'],
+      ...SUGGEST.yahoo.filter(s => !['GC=F'].includes(s)).map(s => [s, s]),
+    ];
+  } else if ((p === 'nse' || p === 'nse_replay') && window.NIFTY500) {
     const name = new Map(window.NIFTY500.map(r => [r[0], `${r[1]} · ${r[2]}`]));
     const nifty50Set = new Set(window.NIFTY50_SYMBOLS || []);
-    const indices = (window.NSE_INDICES || []).map(r => [r[0], `${r[1]} · ${r[2]}`]);
+    const indices = [
+      ['GOLDBEES', 'GOLDBEES · 🟡 Nippon India ETF Gold BeES'],
+      ...(window.NSE_INDICES || []).map(r => [r[0], `${r[1]} · ${r[2]}`]),
+    ];
     const n50 = (window.NIFTY50_SYMBOLS || []).map(s => [s, `${name.get(s) || s} · [NIFTY 50 F&O]`]);
     const others = window.NIFTY500.filter(r => !nifty50Set.has(r[0])).map(r => [r[0], `${r[1]} · ${r[2]}`]);
     const seen = new Set();
@@ -975,9 +1014,12 @@ function renderFoBar() {
   const el = $('fo-chips');
   if (!el) return;
   const presets = window.FO_TOP_STOCKS || [
+    { s: 'PAXGUSDT', l: '🟡 GOLD 24/7', p: 'binance', idx: true, gold: true },
     { s: 'NIFTY', l: 'NIFTY 50', idx: true },
     { s: 'BANKNIFTY', l: 'BANK NIFTY', idx: true },
     { s: 'FINNIFTY', l: 'FIN NIFTY', idx: true },
+    { s: 'GOLDBEES', l: '🟡 GOLDBEES (NSE)', p: 'nse', gold: true },
+    { s: 'GC=F', l: '🟡 GOLD COMEX', p: 'yahoo', gold: true },
     { s: 'RELIANCE', l: 'RELIANCE' },
     { s: 'HDFCBANK', l: 'HDFC BANK' },
     { s: 'ICICIBANK', l: 'ICICI BANK' },
@@ -996,19 +1038,24 @@ function renderFoBar() {
     { s: 'LT', l: 'L&T' },
     { s: 'WIPRO', l: 'WIPRO' },
   ];
-  const cur = $('symbol').value.trim().toUpperCase();
-  const isNse = $('provider').value === 'nse' || $('provider').value === 'nse_replay';
+  const curRaw = $('symbol').value.trim().toUpperCase();
+  const curProv = $('provider').value;
+  const cur = resolveSymbol(curProv, curRaw);
 
-  el.innerHTML = presets.map(x => {
-    const isThis = cur === x.s || (x.s === 'NIFTY' && (cur === '^NSEI' || cur === 'NIFTY50')) || (x.s === 'BANKNIFTY' && cur === '^NSEBANK');
-    const active = isNse && isThis;
-    return `<button class="fo-chip${x.idx ? ' idx' : ''}${active ? ' active' : ''}" data-s="${x.s}" title="${x.l}"><b>${x.l}</b></button>`;
+  el.innerHTML = presets.map((x, idx) => {
+    const targetProv = x.p || 'nse';
+    const xResolved = resolveSymbol(targetProv, x.s);
+    const active = curProv === targetProv && (cur === xResolved || curRaw === x.s);
+    const goldClass = x.gold ? ' gold' : '';
+    return `<button class="fo-chip${x.idx ? ' idx' : ''}${goldClass}${active ? ' active' : ''}" data-idx="${idx}" title="${x.l}"><b>${x.l}</b></button>`;
   }).join('');
 
   el.querySelectorAll('.fo-chip').forEach(btn => {
     btn.onclick = () => {
-      $('provider').value = 'nse';
-      $('symbol').value = btn.dataset.s;
+      const item = presets[+btn.dataset.idx];
+      if (!item) return;
+      $('provider').value = item.p || 'nse';
+      $('symbol').value = item.s;
       fillSuggestions();
       renderFoBar();
       restart();
@@ -1068,6 +1115,15 @@ $('moversbtn').onclick = () => ($('movers').classList.contains('show') ? $('move
     const p = mk.nse.open ? 'nse' : 'yahoo';
     $('provider').value = p;
     $('symbol').value = DEFAULT_SYMBOL[p];
+  }
+  if ($('mkt-gold')) {
+    $('mkt-gold').onclick = () => {
+      $('provider').value = 'binance';
+      $('symbol').value = 'PAXGUSDT';
+      fillSuggestions();
+      renderFoBar();
+      restart();
+    };
   }
   fillSuggestions();
   renderFoBar();

@@ -133,6 +133,28 @@ class EndToEndTest(unittest.TestCase):
         self.assertIn("NIFTY50_SYMBOLS", js_body)
         self.assertIn("FO_TOP_STOCKS", js_body)
 
+    # 10. 24/7 Gold and Commodities support
+    def test_gold_24_7_chart_support(self):
+        from app import resolve_feed_symbol
+        self.assertEqual(resolve_feed_symbol("binance", "GOLD"), ("binance", "PAXGUSDT"))
+        self.assertEqual(resolve_feed_symbol("binance", "PAXG"), ("binance", "PAXGUSDT"))
+        self.assertEqual(resolve_feed_symbol("yahoo", "GOLD"), ("yahoo", "GC=F"))
+        self.assertEqual(resolve_feed_symbol("nse", "GOLD"), ("yahoo", "GOLDBEES.NS"))
+
+        # Verify Gold in Index page
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 200)
+        body = r.data.decode("utf-8")
+        self.assertIn("mkt-gold", body)
+        self.assertIn("PAXGUSDT", body)
+
+        # Verify Gold in Market Universes
+        r_uni = self.client.get("/api/market/universes")
+        self.assertEqual(r_uni.status_code, 200)
+        universes = r_uni.get_json()
+        keys = [u["key"] for u in universes]
+        self.assertIn("commodities_gold", keys)
+
 
 if __name__ == "__main__":
     unittest.main()

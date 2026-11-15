@@ -21,9 +21,12 @@ window.NIFTY50_SYMBOLS = [
 ];
 
 window.FO_TOP_STOCKS = [
+  { s: "PAXGUSDT", l: "🟡 GOLD 24/7", p: "binance", idx: true, gold: true },
   { s: "NIFTY", l: "NIFTY 50", idx: true },
   { s: "BANKNIFTY", l: "BANK NIFTY", idx: true },
   { s: "FINNIFTY", l: "FIN NIFTY", idx: true },
+  { s: "GOLDBEES", l: "🟡 GOLDBEES (NSE)", p: "nse", gold: true },
+  { s: "GC=F", l: "🟡 GOLD COMEX", p: "yahoo", gold: true },
   { s: "RELIANCE", l: "RELIANCE" },
   { s: "HDFCBANK", l: "HDFC BANK" },
   { s: "ICICIBANK", l: "ICICI BANK" },

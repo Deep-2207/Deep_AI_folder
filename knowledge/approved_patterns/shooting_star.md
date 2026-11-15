@@ -1,12 +1,12 @@
 ---
-id: hanging_man
-name: Hanging Man
+id: shooting_star
+name: Shooting Star
 kind: pattern
 category: 1-candle candlestick pattern
-status: PENDING_REVIEW
+status: IMPLEMENTED
 direction: bearish
 candles: 1
-code_name: Hanging Man
+code_name: Shooting Star
 origin: existing-code
 implemented_in: stockpatterns/patterns.py (detect)
 tests: tests/test_patterns.py
@@ -16,23 +16,37 @@ history:
   status: PENDING_REVIEW
   by: claude
   note: written from the existing code
+- date: '2026-11-15'
+  status: APPROVED
+  by: you
+  note: null
+- date: '2026-11-15'
+  status: IMPLEMENTED
+  by: system
+  note: 'code already follows this definition: stockpatterns/patterns.py (detect)'
+review:
+  by: you
+  date: '2026-11-15'
+  decision: APPROVED
+  note: null
 ---
 
-# Hanging Man
+# Shooting Star
 
 > **Origin: existing code.** No uploaded document covers this pattern yet, so this file describes exactly what `stockpatterns/patterns.py` detects today, for you to review. Approving it accepts this coded definition; a book-sourced version can replace it later.
 
 ## Summary
-Same shape as a Hammer, but after a rise.
+Same shape as an Inverted Hammer, but after a rise.
 
 ## Source definition
 Not specified in source: no uploaded document defines this pattern yet.
 
 ## Measurable conditions (as coded)
 - Range > 0 and 10% of range < body <= 40% of range (not a Doji, not a Marubozu)
-- Lower wick >= 2 x body
-- Upper wick <= 15% of range
+- Upper wick >= 2 x body
+- Lower wick <= 15% of range
 - Prior trend of candle [i] is UP
+- Only checked when the candle is not a Hammer/Hanging Man shape
 
 ## Notation used below
 `O, H, L, C` = open, high, low, close of a candle; `[i]` = the pattern's last candle, `[i-1]` the one before.

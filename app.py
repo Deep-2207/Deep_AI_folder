@@ -36,6 +36,25 @@ def test_page():
     return Response(html, mimetype="text/html")
 
 
+def resolve_feed_symbol(provider: str, symbol: str) -> tuple[str, str]:
+    s = (symbol or "").strip().upper()
+    if provider == "nse":
+        return "yahoo", replay.nse_symbol(s)
+    if provider == "binance":
+        if s in ("GOLD", "PAXG", "XAU", "XAUUSD"):
+            return "binance", "PAXGUSDT"
+        return "binance", s
+    if provider == "yahoo":
+        if s in ("GOLD", "XAU", "XAUUSD", "GOLDFUTURES"):
+            return "yahoo", "GC=F"
+        if s in ("OIL", "CRUDEOIL"):
+            return "yahoo", "CL=F"
+        if s in ("SILVER", "SILVERFUTURES"):
+            return "yahoo", "SI=F"
+        return "yahoo", s
+    return provider, s
+
+
 def load(provider, symbol, interval):
     """(candles, last candle still forming?, feed stale?) from a live feed or a replay session."""
     sec = INTERVAL_SECONDS.get(interval)
@@ -44,9 +63,8 @@ def load(provider, symbol, interval):
         if df.empty:
             raise FeedError("replay has no candles yet")
         return df, forming, False
-    if provider == "nse":                          # live NSE stocks via Yahoo: SBIN -> SBIN.NS
-        provider, symbol = "yahoo", replay.nse_symbol(symbol)
-    df = get_history(provider, symbol, interval, HISTORY_CANDLES)
+    feed, sym = resolve_feed_symbol(provider, symbol)
+    df = get_history(feed, sym, interval, HISTORY_CANDLES)
     last_open = int(df["time"].iloc[-1])
     now = time.time()
     return df, now < last_open + sec, now - (last_open + sec) > 3 * sec
@@ -99,7 +117,7 @@ def scan():
 def chart_learner(provider, symbol, interval, horizon):
     """The self-learning model of this chart. Live charts are saved to disk, Test Lab charts are not."""
     persist = provider not in replay.PROVIDERS
-    feed, sym = ("yahoo", replay.nse_symbol(symbol)) if provider == "nse" else (provider, symbol)
+    feed, sym = resolve_feed_symbol(provider, symbol)
     return learner.get(feed, sym, interval, horizon, persist=persist), persist
 
 
@@ -253,7 +271,7 @@ def backtest_api():
         return jsonify(error="horizon and candles must be integers"), 400
     if not names:
         return jsonify(error="pick at least one pattern"), 400
-    feed, sym = ("yahoo", replay.nse_symbol(symbol)) if provider == "nse" else (provider, symbol)
+    feed, sym = resolve_feed_symbol(provider, symbol)
     key = (feed, sym.upper(), interval, total)
     try:
         hit = _bt_cache.get(key)
