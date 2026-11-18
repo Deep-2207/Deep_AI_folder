@@ -439,10 +439,15 @@ def bot_status_api():
         return jsonify(running=False, error=str(e))
 
 
-if __name__ == "__main__":
+import sys
+
+if "unittest" not in sys.modules:
     try:
         import paper_telegram
         paper_telegram.start_bot_thread()
     except Exception as e:
         print(f"[Telegram Bot] Not started: {e}")
+
+
+if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False)
