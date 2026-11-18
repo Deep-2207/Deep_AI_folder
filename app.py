@@ -441,7 +441,7 @@ def bot_status_api():
 
 import sys
 
-if "unittest" not in sys.modules:
+if not any("unittest" in a for a in sys.argv):
     try:
         import paper_telegram
         paper_telegram.start_bot_thread()
