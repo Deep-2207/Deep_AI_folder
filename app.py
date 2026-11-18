@@ -430,5 +430,19 @@ def replay_control():
     return jsonify(s.state())
 
 
+@app.get("/api/bot/status")
+def bot_status_api():
+    try:
+        import paper_telegram
+        return jsonify(paper_telegram.bot_status())
+    except Exception as e:
+        return jsonify(running=False, error=str(e))
+
+
 if __name__ == "__main__":
+    try:
+        import paper_telegram
+        paper_telegram.start_bot_thread()
+    except Exception as e:
+        print(f"[Telegram Bot] Not started: {e}")
     app.run(host="127.0.0.1", port=5000, debug=False)

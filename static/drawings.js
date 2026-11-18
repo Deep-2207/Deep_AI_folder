@@ -360,6 +360,10 @@
     }
     function select(id) { if (selected !== id) { selected = id; changed(); } }
     function remove(id) {
+      const it = items.find(i => i.id === id);
+      if (it && it.auto && root.onAutoTradeDeleted) {
+        try { root.onAutoTradeDeleted(it); } catch (e) { /* no-op */ }
+      }
       items = items.filter(i => i.id !== id);
       if (selected === id) selected = null;
       save(); changed();
@@ -367,6 +371,11 @@
     function deleteSelectedOrAll() {
       if (selected) return remove(selected);
       if (items.length && (!root.confirm || root.confirm('Delete all drawings on this symbol?'))) {
+        for (const it of items) {
+          if (it.auto && root.onAutoTradeDeleted) {
+            try { root.onAutoTradeDeleted(it); } catch (e) { /* no-op */ }
+          }
+        }
         items = []; ruler = null; save(); changed();
       }
     }

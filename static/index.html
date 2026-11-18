@@ -199,7 +199,7 @@
 <header>
   <h1>Live Pattern Scanner</h1>
   <select id="provider" aria-label="Market">
-    <option value="binance">Crypto &amp; 24/7 Gold (PAXG)</option>
+    <option value="binance">Crypto &amp; 24/7 Gold (XAUUSD)</option>
     <option value="nse">NSE India stocks</option>
     <option value="yahoo">US stocks &amp; Commodities</option>
   </select>
@@ -220,7 +220,7 @@
   <button id="go">Load</button>
   <button id="signal" class="sigbtn" title="Recalculate the trade signal now (it also updates by itself at every candle close)">&#9889; Update signal</button>
   <span class="spacer"></span>
-  <span class="mkt gold-mkt" id="mkt-gold" style="cursor:pointer; border-color:rgba(234,179,8,.4); color:#fde047" title="Click to view 24/7 Live Gold chart (PAXGUSDT)"><i style="background:#eab308; box-shadow:0 0 6px #eab308"></i>Gold <b>24/7 LIVE</b></span>
+  <span class="mkt gold-mkt" id="mkt-gold" style="cursor:pointer; border-color:rgba(234,179,8,.4); color:#fde047" title="Click to view 24/7 Live Gold chart (XAUUSD)"><i style="background:#eab308; box-shadow:0 0 6px #eab308"></i>Gold <b>24/7 LIVE</b></span>
   <span class="mkt" id="mkt-nse"><i></i>NSE <b>-</b> <small></small></span>
   <span class="mkt" id="mkt-us"><i></i>US <b>-</b> <small></small></span>
   <a class="navlink" href="/market">Market Radar</a>
@@ -293,11 +293,11 @@ const $ = id => document.getElementById(id);
 const tz = -new Date().getTimezoneOffset() * 60;           // show candles in local time
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const TEST = !!window.TEST_DEFAULT_SYMBOL;                  // /test page (replay) sets this
-const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'NIFTY', binance: 'PAXGUSDT' };
+const DEFAULT_SYMBOL = window.TEST_DEFAULT_SYMBOL || { yahoo: 'PLTR', nse: 'NIFTY', binance: 'XAUUSD' };
 const resolveSymbol = (p, s) => {
   s = (s || '').trim().toUpperCase();
   if (p === 'binance') {
-    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'XAUUSD') return 'PAXGUSDT';
+    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'PAXGUSDT') return 'XAUUSD';
   } else if (p === 'yahoo') {
     if (s === 'GOLD' || s === 'XAU' || s === 'XAUUSD' || s === 'GOLDFUTURES') return 'GC=F';
     if (s === 'OIL' || s === 'CRUDEOIL') return 'CL=F';
@@ -313,7 +313,7 @@ const resolveSymbol = (p, s) => {
   return s;
 };
 const SUGGEST = {
-  binance: ['PAXGUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
+  binance: ['XAUUSD', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
   yahoo: ['GC=F', 'PLTR', 'SOXL', 'COIN', 'AMD', 'RIOT', 'MARA', 'TSLA', 'NVDA', 'SMCI', 'MSTR', 'IONQ', 'UPST', 'HOOD', 'SOFI', 'AAPL', 'META'],
   nse: ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'GOLDBEES', 'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'ADANIENT', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'TATASTEEL', 'MARUTI', 'LT', 'WIPRO'],
 };
@@ -410,7 +410,7 @@ function render(d) {
   } else if (range) chart.timeScale().setVisibleLogicalRange(range);
   shownTimes = new Set(d.candles.map(c => c.time + tz));
 
-  const symLabel = d.symbol === 'PAXGUSDT' ? 'Gold 24/7 (PAX Gold / USD)'
+  const symLabel = (d.symbol === 'XAUUSD' || d.symbol === 'PAXGUSDT') ? 'Gold 24/7 (XAU / USD)'
     : d.symbol === 'GC=F' ? 'Gold Futures (COMEX)'
     : d.symbol === 'GOLDBEES.NS' || d.symbol === 'GOLDBEES' ? 'Nippon India Gold BeES ETF'
     : d.symbol === '^NSEI' ? 'NIFTY 50'
@@ -716,17 +716,49 @@ function buildTradeMarkers(s) {
   return out;
 }
 
-// draw the current trade (or the last finished one) as a CALL/PUT box; replaced when the signal changes
+const DISMISSED_KEY = 'scanner_dismissed_trades';
+function getDismissedTrades() {
+  try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch (e) { return []; }
+}
+function isTradeDismissed(key) {
+  return Boolean(key && getDismissedTrades().includes(key));
+}
+function dismissTrade(key) {
+  if (!key) return;
+  const list = getDismissedTrades();
+  if (!list.includes(key)) {
+    list.push(key);
+    if (list.length > 200) list.shift();
+    try { localStorage.setItem(DISMISSED_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  dr.removeAuto();
+  boxKey = key;
+  renderSignal();
+}
+
+window.onAutoTradeDeleted = function() {
+  const t = sig && sig.trade;
+  if (t) {
+    dismissTrade(`${current}|${t.side}|${t.entry_time}`);
+  }
+};
+
+// draw the current trade as a CALL/PUT box; removed when trade exits, hits stop/target, or is manually dismissed
 function syncBox(s) {
-  const t = s.trade || s.last_trade;
+  // Never show exited or finished trades as active boxes
+  const t = (s.trade && s.state !== 'exit') ? s.trade : null;
   const key = t ? `${current}|${t.side}|${t.entry_time}` : '';
+  if (!t || isTradeDismissed(key)) {
+    dr.removeAuto();
+    boxKey = key;
+    return;
+  }
   if (key === boxKey) return;
   boxKey = key;
   dr.removeAuto();
-  if (!t) return;
   dr.addTrade({ type: t.side === 'CALL' ? 'long' : 'short', t0: t.entry_time, entry: t.entry, stop: t.stop, target: t.target,
     w: s.max_hold * s.interval_seconds, auto: true });
-  if (s.trade && s.state === 'enter') {          // new trade: make room so the whole box is visible
+  if (s.state === 'enter') {          // new trade: make room so the whole box is visible
     chart.timeScale().setVisibleLogicalRange({ from: candleCount - 100, to: candleCount + s.max_hold + 5 });
   }
 }
@@ -768,6 +800,8 @@ function renderSignal() {
   const call = t && t.side === 'CALL';
   const arrow = call ? '&#9650;' : '&#9660;';
   const byModel = s.logic === 'model', who = byModel ? 'model' : 'rule';
+  const tradeKey = t ? `${current}|${t.side}|${t.entry_time}` : '';
+  const isDismissed = isTradeDismissed(tradeKey);
   let cls, head, line, sub = '', title;
   if (d.stale) {
     cls = 'closed'; head = '&#9208; MARKET CLOSED'; title = 'CLOSED';
@@ -777,6 +811,10 @@ function renderSignal() {
     cls = 'wait'; head = '&#9208; WAIT: NO TRADE'; title = 'WAIT';
     line = s.wait_reason;
     sub = 'Do nothing until the banner says BUY CALL NOW or BUY PUT NOW.';
+  } else if (isDismissed) {
+    cls = 'closed'; head = '&#10005; TRADE MANUALLY CLOSED'; title = 'CLOSED';
+    line = `You manually closed this ${t.side} trade. It will not show again.`;
+    sub = `Waiting for the next signal. <a href="#" id="btn-reopen-trade" style="color:var(--accent,#4c8dff)">Click here to re-open</a>`;
   } else if (state === 'enter') {
     cls = call ? 'call' : 'put'; head = `${arrow} BUY ${t.side} NOW`; title = `${call ? '▲' : '▼'} BUY ${t.side} NOW`;
     const exp = byModel && s.model.opinion ? ` (it expects about ${R(call ? s.model.opinion.call_r : s.model.opinion.put_r)})` : '';
@@ -797,14 +835,17 @@ function renderSignal() {
   }
   document.title = `${title} · ${s.symbol} ${s.interval}`;
 
-  const levels = t ? `
+  const levels = (t && !isDismissed) ? `
     <div class="levels sec">
       <div><small>Entry</small><b>${num(t.entry)}</b></div>
       <div><small>Stop-loss</small><b class="DOWN">${num(t.stop)}</b><small>risk ${num(t.stop_points)} pts</small></div>
       <div><small>Target</small><b class="UP">${num(t.target)}</b><small>gain ${num(t.target_points)} pts</small></div>
     </div>
     ${progressBar(t, d.last_price, s.rr)}
-    <div class="why sec">Exit at the stop-loss, at the target, after ${plural(t.candles_left, 'more candle')} (~${dur(t.candles_left * s.interval_seconds)}), or at the market close, whichever comes first.</div>` : '';
+    <div class="why sec">Exit at the stop-loss, at the target, after ${plural(t.candles_left, 'more candle')} (~${dur(t.candles_left * s.interval_seconds)}), or at the market close, whichever comes first.</div>
+    <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+      <button id="btn-manual-close" class="btn2" style="font-size:11px; padding:3px 8px; color:#ef5350; border-color:rgba(239,83,80,.4)" title="Manually close this trade so it doesn't show again">✕ Close Trade Manually</button>
+    </div>` : '';
 
   const strip = txt => txt.replace(/^(Trend|Patterns) [A-Z]+: /, '');
   const lt = s.last_trade;
@@ -835,6 +876,23 @@ function renderSignal() {
     <div class="bt ${vc}"><b>Track record of the ${who} on this chart</b> (${b.candles} candles${byModel ? ' it judged without having seen them' : ''}): ${b.trades} trades,
       ${b.win_rate == null ? '-' : Math.round(b.win_rate * 100) + '%'} won, net ${pts(b.total_points)} pts (${b.total_r >= 0 ? '+' : ''}${b.total_r}R), profit factor ${b.profit_factor ?? '-'}.
       <br><b>${vt}</b></div>`;
+  const mcBtn = $('btn-manual-close');
+  if (mcBtn) {
+    mcBtn.onclick = () => {
+      dismissTrade(tradeKey);
+    };
+  }
+  const roBtn = $('btn-reopen-trade');
+  if (roBtn) {
+    roBtn.onclick = (e) => {
+      e.preventDefault();
+      const list = getDismissedTrades().filter(k => k !== tradeKey);
+      try { localStorage.setItem(DISMISSED_KEY, JSON.stringify(list)); } catch (err) {}
+      boxKey = '';
+      renderSignal();
+      syncBox(sig);
+    };
+  }
   if (fresh) bannerKey = fresh;
 }
 
@@ -981,7 +1039,7 @@ function fillSuggestions() {
   let rows = (SUGGEST[p] || []).map(s => [s, '']);
   if (p === 'binance') {
     rows = [
-      ['PAXGUSDT', 'PAXGUSDT · 🟡 Gold Spot (24/7 Physical Gold / USD)'],
+      ['XAUUSD', 'XAUUSD · 🟡 24/7 Live Gold Spot (XAU/USD)'],
       ['BTCUSDT', 'BTCUSDT · Bitcoin (Crypto 24/7)'],
       ['ETHUSDT', 'ETHUSDT · Ethereum (Crypto 24/7)'],
       ['SOLUSDT', 'SOLUSDT · Solana (Crypto 24/7)'],
@@ -1014,7 +1072,7 @@ function renderFoBar() {
   const el = $('fo-chips');
   if (!el) return;
   const presets = window.FO_TOP_STOCKS || [
-    { s: 'PAXGUSDT', l: '🟡 GOLD 24/7', p: 'binance', idx: true, gold: true },
+    { s: 'XAUUSD', l: '🟡 GOLD (XAUUSD)', p: 'binance', idx: true, gold: true },
     { s: 'NIFTY', l: 'NIFTY 50', idx: true },
     { s: 'BANKNIFTY', l: 'BANK NIFTY', idx: true },
     { s: 'FINNIFTY', l: 'FIN NIFTY', idx: true },
@@ -1119,7 +1177,7 @@ $('moversbtn').onclick = () => ($('movers').classList.contains('show') ? $('move
   if ($('mkt-gold')) {
     $('mkt-gold').onclick = () => {
       $('provider').value = 'binance';
-      $('symbol').value = 'PAXGUSDT';
+      $('symbol').value = 'XAUUSD';
       fillSuggestions();
       renderFoBar();
       restart();

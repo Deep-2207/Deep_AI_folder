@@ -156,7 +156,7 @@ const H = () => D.horizon;
 const resolveSymbol = (p, s) => {
   s = (s || '').trim().toUpperCase();
   if (p === 'binance') {
-    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'XAUUSD') return 'PAXGUSDT';
+    if (s === 'GOLD' || s === 'PAXG' || s === 'XAU' || s === 'PAXGUSDT') return 'XAUUSD';
   } else if (p === 'yahoo') {
     if (s === 'GOLD' || s === 'XAU' || s === 'XAUUSD' || s === 'GOLDFUTURES') return 'GC=F';
     if (s === 'OIL' || s === 'CRUDEOIL') return 'CL=F';

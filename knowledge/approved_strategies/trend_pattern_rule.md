@@ -3,7 +3,7 @@ id: trend_pattern_rule
 name: Trend + pattern agreement rule (CALL / PUT / WAIT)
 kind: strategy
 category: Strategy
-status: PENDING_REVIEW
+status: IMPLEMENTED
 origin: existing-code
 implemented_in: stockpatterns/signal.py
 tests: tests/test_signal.py
@@ -13,6 +13,19 @@ history:
   status: PENDING_REVIEW
   by: claude
   note: written from the existing code
+- date: '2026-11-18'
+  status: APPROVED
+  by: you
+  note: null
+- date: '2026-11-18'
+  status: IMPLEMENTED
+  by: system
+  note: 'code already follows this definition: stockpatterns/signal.py'
+review:
+  by: you
+  date: '2026-11-18'
+  decision: APPROVED
+  note: null
 ---
 
 # Trend + pattern agreement rule (CALL / PUT / WAIT)
